@@ -1,0 +1,2 @@
+# remove first 5 seconds from video
+ffmpeg -i drone1_512_1000_epoch.mp4 -ss 5 movie.mp4
