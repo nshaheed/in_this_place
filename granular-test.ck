@@ -17,6 +17,9 @@ Machine.add(me.dir() + "/ks-chord.ck");
 
 (1.0 / 48.0)::second => dur framerate; // seconds per frame
 
+700 => float filterCutoffMax; // set the filter cutoff max freq that the sweep will use
+// 20000 => filterCutoffMax;
+
 // each one of these needs to scale the playback rate chagne based off of its base rate
 // otherwise they go out of tune, which is actualy kinda cool. Maybe this could be an arc?
 // progression: some amount of time with proper shepherd, then start moving out of sync.
@@ -224,6 +227,8 @@ f.set(500, 1.5);
 -0.25 => b2.rate;
 
 
+spork~ controlCutoffBounds();
+spork~ watchFilterCutoff();
 controlCutoff(f);
 
 while(true) {
@@ -251,22 +256,15 @@ while(true) {
 fun void controlCutoff(LPF filter) {
     Envelope e => blackhole;
     30::second => e.duration;
-    // filter.freq() => e.value;
-    // 20000 => e.target;
-    
-    <<< filter.freq() >>>;
-    <<< e.value() >>>;
-    <<< e.target() >>>;
-    <<< e.rate() >>>;
     
     while (true) {
         5::second => now;
         e.keyOn();
+        
+        filterCutoffMax => float currMax;
+        <<< "new cutoff max", currMax >>>;
         while (e.value() < e.target()) {
-            // e.value() * 19000 + 500 => filter.freq;
-            scale(e.value(), 0, 1, 500, 20000) => filter.freq;
-            
-            // <<< filter.freq() >>>;
+            scale(e.value(), 0, 1, 500, currMax) => filter.freq;
             10::ms => now;
         }
         
@@ -275,8 +273,7 @@ fun void controlCutoff(LPF filter) {
         e.keyOff();
         
         while (e.value() > 0.0) {
-            scale(e.value(), 0, 1, 500, 20000) => filter.freq;
-            // <<< filter.freq() >>>;
+            scale(e.value(), 0, 1, 500, currMax) => filter.freq;
             10::ms => now;
         }
     
@@ -287,6 +284,27 @@ fun void controlCutoff(LPF filter) {
     e.keyOff();
     10::second => now;
     // filter
+}
+
+// the score for controlling cutoff bounds.
+fun void controlCutoffBounds() {
+    5::second => now;
+    
+    Envelope e => blackhole;
+    2::minute => e.duration;
+    
+    e.keyOn();
+    
+    while(e.value() < e.target()) {
+        scale(e.value(), 0, 1, 700, 20000) => filterCutoffMax;
+        300::ms => now;
+    }
+    1::minute => now;
+    e.keyOff();
+    while(e.value() > 0) {
+        scale(e.value(), 0, 1, 700, 20000) => filterCutoffMax;
+        300::ms => now;
+    }
 }
 
 fun float scale(float in, float inMin, float inMax, float outMin, float outMax) {
@@ -310,7 +328,7 @@ fun void bass() {
     
     0.4 => lisabass.gain;
 
-    15 ::second => now;
+    // 15 ::second => now;
     1::second => now;
 
     while (true) {
@@ -323,6 +341,20 @@ fun void bass() {
             // spork~ controlRate(3::second);
             spork~ rateASR(0::ms, 3::second, 2400::ms, 1);
             spork~ blendASR(1600::ms, 2::second, 1600::ms, 0.3);
+            
+            // scale chance of activating floaties by filter cutoff
+            float floatChance;
+            if (f.freq() < 2000) {
+                0 => floatChance;
+            } else {
+                scale(f.freq(), 2000, 20000, 0.2, 0.9) => floatChance;
+            }
+            
+            math.randomf() => float chance;
+            
+            if (chance < floatChance) {
+                spork~ launchFloaties();
+            }
 
             15::second => now;
         } else {
@@ -333,7 +365,9 @@ fun void bass() {
             spork~ rateASR(0::ms, 5::second, 2000::ms, 1);
             spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
             
-            if (Math.random2f(0,1) > 0.25) {
+            // scale chance of activating floaties by filter cutoff
+            scale(f.freq(), 500, 200000, 0.75, 1) => float floatChance;
+            if (Math.randomf() < floatChance) {
                 spork~ launchFloaties();
             }
 
@@ -347,24 +381,39 @@ fun void bass2(dur atk, dur sustain, dur release) {
     <<< "bass2" >>>;
     Blit t1 => ADSR e => Gain g => JCRev r => dac;
     Blit t2 => e;
-    0.0 => r.mix;
+    Blit t3 => Envelope e2 => e;
+    0.1 => r.mix;
     
-    Math.random2(2,4) => t1.harmonics => t2.harmonics; 
+    Math.random2(2,4) => t1.harmonics => t2.harmonics;
+    Math.random2(3,5) => t3.harmonics; 
     
-    0.4 => g.gain;
-  
-  
-    0.5 => t2.gain;
+    (sustain-1::second)/2 => e2.duration;
+    
+    <<< t1.harmonics() >>>;
+    
+    1.2 => g.gain;
+    
+    0.4 => float gainScale;
+    1 * gainScale => t1.gain;
+    0.5 * gainScale => t2.gain;
+    0.25 * gainScale => t3.gain;
 
     
     36 => Std.mtof => t1.freq;
     48.05 => Std.mtof => t2.freq;
+    60.05 => Std.mtof => t3.freq;
     
-    e.set(atk, 100::ms, 0.8, release);
+    e.set(atk, 100::ms, 0.5, release);
     
     e.keyOn();
+    atk + 100::ms => now;
     
-    sustain => now;
+    1::second => now;
+    e2.keyOn();    
+    (sustain-1::second)/2 => now;
+    
+    e2.keyOff();
+    (sustain-1::second)/2 => now;
     
     e.keyOff();
     release => now;
@@ -372,6 +421,12 @@ fun void bass2(dur atk, dur sustain, dur release) {
 }
 
 
+fun void watchFilterCutoff() {
+    while(true) {
+        <<< "[cutoff]", f.freq() >>>;
+        1::second => now;
+    }
+}
 
 fun void controlRate(dur len) {
     setRate(1);
