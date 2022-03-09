@@ -200,7 +200,7 @@ xmit.send();
 
 setBlend(0);
 setFrame(0);
-fadeIn(5::second);
+spork~ fadeIn(15::second);
 
 0 => float rateDelta;
 
@@ -310,28 +310,30 @@ fun void bass() {
     
     0.4 => lisabass.gain;
 
-    // 20::second => now;
-    1::second => now;
+    15 ::second => now;
+    // 1::second => now;
 
     while (true) {
         Math.randomf() => float chance;
         
-        if (chance > 1.3) {
+        if (chance > 0.4) {
             <<< "bass" >>>;
            //  spork~ getgrain(lisabass, 3::second, 100::ms, 800::ms, 1);
-            spork~ bass2(25::ms, 3::second, 800::ms);
-            spork~ controlRate(3::second);
+            spork~ bass2(25::ms, 3::second, 1200::ms);
+            // spork~ controlRate(3::second);
+            spork~ rateASR(0::ms, 3::second, 1600::ms, 1);
             spork~ blendASR(1600::ms, 2::second, 800::ms, 0.3);
 
-            10::second => now;
+            15::second => now;
         } else {
             <<< "long bass" >>>;
             // spork~ getgrain(lisabass, 5::second, 400::ms, 1600::ms, 2);
             spork~ bass2(25::ms, 5::second, 1600::ms);
-            spork~ controlRate(5::second);
+            // spork~ controlRate(5::second);
+            spork~ rateASR(0::ms, 5::second, 2000::ms, 1);
             spork~ blendASR(1600::ms, (5-1.6)::second, 2000::ms, 0.5);
             
-            if (Math.random2f(0,1) > 0.5) {
+            if (Math.random2f(0,1) > 0.25) {
                 spork~ launchFloaties();
             }
 
@@ -343,10 +345,9 @@ fun void bass() {
 
 fun void bass2(dur atk, dur sustain, dur release) {
     <<< "bass2" >>>;
-    Blit t1 => ADSR e => Gain g => PRCRev r => dac;
+    Blit t1 => ADSR e => Gain g => JCRev r => dac;
     Blit t2 => e;
     0.0 => r.mix;
-    
     
     Math.random2(2,4) => t1.harmonics => t2.harmonics; 
     
@@ -373,26 +374,43 @@ fun void bass2(dur atk, dur sustain, dur release) {
 
 
 fun void controlRate(dur len) {
-    // start the message...
-    xmit.start( "/video/player/rate" );
-    
-    1 => xmit.add;
-    
-    xmit.send();
-
+    setRate(1);
     len => now;
-    
-    xmit.start( "/video/player/rate" );
-    
-    2 => xmit.add;
-    
-    xmit.send();
+    setRate(2);
+}
 
+fun void rateASR(dur atk, dur sustain, dur release, float rate) {
+    ADSR e => blackhole;
+    e.set(atk, 0::ms, 1.0, release);
+        
+    e.keyOn();
+    
+    while(e.value() < e.target()) {
+        scale(e.value(), 0, 1, 2, rate) => setBlend;
+        framerate => now;
+    }
+    e.value() * rate => setRate;
+    
+    sustain => now;
+    
+    e.keyOff();
+    while(e.value() > 0.0) {
+        scale(e.value(), 0, 1, 2, rate) => setRate;
+        framerate => now;
+    }
+}
+
+fun void setRate(float val) {
+    xmit.start( "/video/player/rate" );
+    val => xmit.add;    
+    xmit.send();
 }
 
 fun void blendASR(dur atk, dur sustain, dur release, float gain) {
     ADSR e => blackhole;
     e.set(atk, 0::ms, 1.0, release);
+    
+    scale(f.freq(), 500.0, 20000.0, 0.3, 1) => gain;
     
     e.keyOn();
     
@@ -427,26 +445,23 @@ fun void setFrame(int frame) {
 }
 
 fun void fadeIn(dur d) {
-    // now + d => time until;
     
-    xmit.start("/video/player/fade");
+    Envelope e => blackhole;
+    d => e.duration;
+    e.keyOn();
     
-    1 => xmit.add;
-    
-    xmit.send();
-
-    
-    /*
-    // TODO
-    while(now < until) {
-        xmit.start( "/video/player/fade" );
-    
-        frame => xmit.add;
-    
-        xmit.send();
+    while(e.value() < e.target()) {
+        e.value() => setFade;
+        framerate => now;
     }
-    */
 }
+
+fun void setFade(float val) {
+    xmit.start("/video/player/fade");
+    val => xmit.add;
+    xmit.send();
+}
+
 
  
 fun void launchFloaties() {
