@@ -321,8 +321,8 @@ fun void bass() {
            //  spork~ getgrain(lisabass, 3::second, 100::ms, 800::ms, 1);
             spork~ bass2(25::ms, 3::second, 1200::ms);
             // spork~ controlRate(3::second);
-            spork~ rateASR(0::ms, 3::second, 1600::ms, 1);
-            spork~ blendASR(1600::ms, 2::second, 800::ms, 0.3);
+            spork~ rateASR(0::ms, 3::second, 2400::ms, 1);
+            spork~ blendASR(1600::ms, 2::second, 1600::ms, 0.3);
 
             15::second => now;
         } else {
@@ -331,7 +331,7 @@ fun void bass() {
             spork~ bass2(25::ms, 5::second, 1600::ms);
             // spork~ controlRate(5::second);
             spork~ rateASR(0::ms, 5::second, 2000::ms, 1);
-            spork~ blendASR(1600::ms, (5-1.6)::second, 2000::ms, 0.5);
+            spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
             
             if (Math.random2f(0,1) > 0.25) {
                 spork~ launchFloaties();
