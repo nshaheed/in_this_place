@@ -231,14 +231,14 @@ while(true) {
         74 * i + 50 => b1.minDur;
         74 * i + 50 => b2.minDur;
         74 * i + 1000 => f.freq;
-        0.02 * i => setBlend;
+        // 0.02 * i => setBlend;
         150::ms => now;
     }
     for (50 => int i; i > 0; i--) {
         74 * i + 50 => b1.minDur;
         74 * i + 50 => b2.minDur;
         74 * i + 1000 => f.freq;
-        0.02 * i => setBlend;
+        // 0.02 * i => setBlend;
         150::ms => now;
     }
 
@@ -311,7 +311,7 @@ fun void bass() {
     0.4 => lisabass.gain;
 
     15 ::second => now;
-    // 1::second => now;
+    1::second => now;
 
     while (true) {
         Math.randomf() => float chance;
@@ -386,7 +386,7 @@ fun void rateASR(dur atk, dur sustain, dur release, float rate) {
     e.keyOn();
     
     while(e.value() < e.target()) {
-        scale(e.value(), 0, 1, 2, rate) => setBlend;
+        scale(e.value(), 0, 1, 2, rate) => setRate;
         framerate => now;
     }
     e.value() * rate => setRate;
@@ -415,19 +415,26 @@ fun void blendASR(dur atk, dur sustain, dur release, float gain) {
     e.keyOn();
     
     while(e.value() < e.target()) {
-        e.value() * gain => setBlend;
+        scale(e.value(), 0, 1, 0, gain) => setBlend;
         framerate => now;
     }
-    e.value() * gain => setBlend;
+    scale(e.value(), 0, 1, 0, gain) => setBlend;
 
+    now + sustain => time next;
     
-    sustain => now;
+    while(now < next) {
+        scale(e.value(), 0, 1, 0, gain) => setBlend;
+        framerate => now;
+    }
+    scale(e.value(), 0, 1, 0, gain) => setBlend;
+ 
     
     e.keyOff();
     while(e.value() > 0.0) {
-        e.value() * gain => setBlend;
+        scale(e.value(), 0, 1, 0, gain) => setBlend;
         framerate => now;
     }
+    scale(e.value(), 0, 1, 0, gain) => setBlend;
 }
 
 fun void setBlend(float val) {
