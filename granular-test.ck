@@ -15,7 +15,7 @@
 //-----------------------------------------------------------------------------
 Machine.add(me.dir() + "/ks-chord.ck");
 
-(1.0 / 24.0)::second => dur framerate; // seconds per frame
+(1.0 / 48.0)::second => dur framerate; // seconds per frame
 
 // each one of these needs to scale the playback rate chagne based off of its base rate
 // otherwise they go out of tune, which is actualy kinda cool. Maybe this could be an arc?
@@ -113,7 +113,8 @@ class Shepherd extends Chugraph {
     0.000001 => float INC;
     // 0.00008 => float INC;
     // unit time (change interval)
-    1::ms => dur T;
+    // 1::ms => dur T;
+    framerate / 4 => dur T;
 
     // starting pitches (in MIDI note numbers, octaves apart)
     [ -3.0, -2.0, -1.0, 0] 
@@ -214,7 +215,7 @@ Bright b2 => f => r => dac;
 0.05 => r.mix;
 
 f.set(500, 1.5);
-0.3 => f.gain;
+0.25 => f.gain;
 
 0 => b2.gain; // phase in b2 at some point
 
@@ -272,7 +273,7 @@ fun void controlCutoff(LPF filter) {
         
         e.keyOff();
         
-        while (e.value() > e.target()) {
+        while (e.value() > 0.0) {
             scale(e.value(), 0, 1, 500, 20000) => filter.freq;
             // <<< filter.freq() >>>;
             10::ms => now;
@@ -293,34 +294,63 @@ fun float scale(float in, float inMin, float inMax, float outMin, float outMax) 
 }
 
 fun void bass() {
-    26::second => dur start;
-    27::second => dur end;
+    41::second => dur start;
+    49::second => dur end;
 
     //28::second => start;
     //30::second => end;
 
-    load( me.dir() + "concertina1.wav", start, end) @=> LiSa @ lisabass;
-    lisabass => NRev r => dac;
+    load( me.dir() + "concertina_bass2.wav", start, end) @=> LiSa @ lisabass;
+    lisabass => Dyno d => NRev r => dac;
     
-    2 => lisabass.gain;
+    0.1 => r.mix;
+    
+    d.compress();
+    
+    0.4 => lisabass.gain;
+
+    // 20::second => now;
+    1::second => now;
 
     while (true) {
-        10::second => now;
         Math.randomf() => float chance;
         
-        if (chance > 0.5) {
+        if (chance > 0.3) {
             <<< "bass", chance >>>;
-            spork~ getgrain(lisabass, 3::second, 100::ms, 800::ms, 0.0625);
+            spork~ getgrain(lisabass, 3::second, 100::ms, 800::ms, 1);
             spork~ controlRate(3::second);
+            spork~ blendASR(400::ms, 2::second, 800::ms, 0.3);
+
+            10::second => now;
         } else {
             <<< "long bass" >>>;
-            spork~ getgrain(lisabass, 5::second, 100::ms, 800::ms, 0.0625);
+            spork~ getgrain(lisabass, 5::second, 400::ms, 1600::ms, 2);
             spork~ controlRate(5::second);
+            spork~ blendASR(1600::ms, 3.5::second, 2000::ms, 0.5);
+            
+            if (Math.random2f(0,1) > 0.5) {
+                spork~ launchFloaties();
+            }
+
+            20::second => now;
         }
-        spork~ blendTest();
         // 10::second => now;
     }
 }
+
+fun void bass2() {
+    TriOsc t => NRev r => dac;
+    0.1 => r.mix;
+    
+    0.4 => t.gain;
+    
+    12 => Std.mtof => t.freq;
+    
+    
+    30::second => now;
+}
+
+
 
 fun void controlRate(dur len) {
     // start the message...
@@ -340,16 +370,25 @@ fun void controlRate(dur len) {
 
 }
 
-fun void blendTest() {
+fun void blendASR(dur atk, dur sustain, dur release, float gain) {
+    ADSR e => blackhole;
+    e.set(atk, 0::ms, 1.0, release);
     
-    // This really needs to be done at 24fps...
-    for (0 => int i; i < 50; i++) {
-        0.01 * i => setBlend;
-        60::ms => now;
+    e.keyOn();
+    
+    while(e.value() < e.target()) {
+        e.value() * gain => setBlend;
+        framerate => now;
     }
-    for (50 => int i; i > 0; i--) {
-        0.01 * i => setBlend;
-        45::ms => now;
+    e.value() * gain => setBlend;
+
+    
+    sustain => now;
+    
+    e.keyOff();
+    while(e.value() > 0.0) {
+        e.value() * gain => setBlend;
+        framerate => now;
     }
 }
 
@@ -389,29 +428,66 @@ fun void fadeIn(dur d) {
     */
 }
 
+ 
+fun void launchFloaties() {
+    load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties1;
+    load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties2;
+    
+    <<< "floaties" >>>;
+    
+    // Need for stereo reverb
+    NRev rl => dac;
+    NRev rr => dac;
+   
+    0.25 => rl.mix => rr.mix;
+    
+    floaties1 => Pan2 p1;
+    floaties2 => Pan2 p2;
+    
+    p1.left => rl;
+    p2.left => rl;
+    p1.right => rr;
+    p2.right => rr;
+    
+    -0.75 => p1.pan;
+    0.75 => p2.pan;
+    
+    
+    Math.random2(4,8) => int count;
+    // 1 => count;
+    for (0 => int i; i < count; i++ ) {
+        
+        [0.5, 1.0, 2.0] @=> rates;
+        rates[Math.random2(0,rates.cap()-1)] => float rate;
+        
+        if(Math.random2f(0,1) > 0.5) {
+            -1 *=> rate;
+        }
+        
+        if (i % 2 == 0) {
+            spork~ getgrain2(floaties1, 3::second, 1000::ms, 1000::ms, 1 * rate);
+        } else {
+            spork~ getgrain2(floaties2, 3::second, 1000::ms, 1000::ms, 1 * rate);
+        }
+        
+        framerate * 6 * Std.fabs(rate) => now;
+    }
+    
+    5::second => now;
 
-/*
-// party on...
-0.5 => lisa.rate; // rate!
-1 => lisa.loop; // loop it!
-1 => lisa.bi; // bi-directional loop!
-1 => lisa.play; // play!
-
-// commence party
-while( true ) 1::second => now;
-*/  
-
+}
     
 // sporkee: a grain!
 fun void getgrain( LiSa lisa, dur grainlen, dur rampup, dur rampdown, float rate )
 {
-    1::second => dur bufferlen;
+    5::second => dur bufferlen;
     // get an available voice
     // lisa[which].getVoice() => int newvoice;
     lisa.getVoice() => int newvoice;
     
     // make sure we got a valid voice   
     if (newvoice < 0) return;
+        
 
     // set play rate
     lisa.rate(newvoice, rate);
@@ -426,6 +502,36 @@ fun void getgrain( LiSa lisa, dur grainlen, dur rampup, dur rampdown, float rate
     // for ramp down duration
     rampdown => now;
 }
+
+// sporkee: a grain!
+fun void getgrain2( LiSa lisa, dur grainlen, dur rampup, dur rampdown, float rate )
+{
+    5::second => dur bufferlen;
+    1 => lisa.loop;
+    1 => lisa.bi;
+    // get an available voice
+    // lisa[which].getVoice() => int newvoice;
+    lisa.getVoice() => int newvoice;
+    
+    // make sure we got a valid voice   
+    if (newvoice < 0) return;
+
+    // set play rate
+    lisa.rate(newvoice, rate);
+    
+    Math.random2f(0,1) => float pos;
+    // set play position
+    lisa.playPos(newvoice, pos * bufferlen);
+    // set ramp up duration
+    lisa.rampUp(newvoice, rampup);
+    // wait for grain length (minus the ramp-up and -down)
+    (grainlen - (rampup + rampdown)) => now;
+    // set ramp down duration
+    lisa.rampDown(newvoice, rampdown);
+    // for ramp down duration
+    rampdown => now;
+}
+
 
 // create a new LiSa pre-loaded with the specified file
 fun LiSa load( string filename, dur start, dur end )
