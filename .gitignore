@@ -3,3 +3,6 @@
 *.pxr
 /final/
 /movie_player/
+*.blend
+*.blend1
+*.mkv

@@ -15,22 +15,25 @@
 //-----------------------------------------------------------------------------
 Machine.add(me.dir() + "/ks-chord.ck");
 
-// one-stop function for creating a LiSa, loaded with the specified audio file
-26::second => dur start;
-28::second => dur end;
-
+(1.0 / 24.0)::second => dur framerate; // seconds per frame
 
 // each one of these needs to scale the playback rate chagne based off of its base rate
 // otherwise they go out of tune, which is actualy kinda cool. Maybe this could be an arc?
 // progression: some amount of time with proper shepherd, then start moving out of sync.
 class Bright extends Chugraph {
     1 => float rate;
-    0 => float speed;
+    // 0 => float speed;
+    // -0.00005 => float speed;
+    -0.0000005 => float speed;
     // -0.00000005 => float speed;
-    load( me.dir() + "concertina1.wav", start, end) @=> LiSa @ lisa;
-    lisa => NRev r => outlet;
     
-    0.05 => r.mix;
+    26::second => dur start;
+    28::second => dur end;
+
+    load( me.dir() + "concertina1.wav", start, end) @=> LiSa @ lisa;
+    lisa => outlet;
+    
+    // 0.05 => r.mix;
 
     0.2 => lisa.gain;
 
@@ -40,6 +43,8 @@ class Bright extends Chugraph {
     lisa.maxVoices(60);
     
     5::ms => dur offset;
+    
+    209 => float minDur;
     
     spork~ run();
     
@@ -67,11 +72,14 @@ class Bright extends Chugraph {
         rampdown => now;
     }
     
+    fun void setVoices(int n) {
+        lisa.maxVoices(n);
+    }
+    
     fun void run() {
         while(true) {
-            // new rate and duration
-            Math.random2f(0.5, 0.5) => float newrate;
-            Math.random2f(209, 400)::ms => dur newdur;
+            // new duration
+            Math.random2f(minDur, 5000)::ms => dur newdur;
             
             
             // rates[Math.random2(0, rates.cap()-1)] => newrate;
@@ -85,9 +93,8 @@ class Bright extends Chugraph {
             // advance time
             
             // if (offset > 30::ms || offset < 0.5::ms) 1::ms => duration;
-            
-            // <<< offset / ms >>>;
             offset => now;
+            // <<< offset / ms >>>;            
             // -0.00000005 +=> rateDelta;
             // speed +=> rateDelta;
             // delta +=> offset;
@@ -95,6 +102,72 @@ class Bright extends Chugraph {
     }
 }
 
+class Shepherd extends Chugraph {
+    // mean for normal intensity curve
+    -1.0 => float MU;
+    // standard deviation for normal intensity curve
+    2 => float SIGMA;
+    // normalize to 1.0 at x==MU
+    1 / Math.gauss(MU, MU, SIGMA) => float SCALE;
+    // increment per unit time (use negative for descending)
+    0.000001 => float INC;
+    // 0.00008 => float INC;
+    // unit time (change interval)
+    1::ms => dur T;
+
+    // starting pitches (in MIDI note numbers, octaves apart)
+    [ -3.0, -2.0, -1.0, 0] 
+    // [-1.0] 
+    @=> float pitches[];
+    // number of tones
+    pitches.size() => int N;
+    // bank of tones
+    Bright tones[N];
+    // overall gain
+    Gain internalGain => LPF f => outlet; 
+    1.0/N => internalGain.gain;
+    f.set(5000, 1);
+    
+    
+    // connect to dac
+    for( int i; i < N; i++ ) { tones[i] => internalGain; }
+    
+    for ( int i; i < N; i++ ) { -0 +=> pitches[i]; }
+
+    // infinite time loop
+    spork~ loop();
+    fun void loop() {
+        while( true ) {
+                for( int i; i < N; i++ )
+                {
+                    // set frequency from pitch
+                    Math.pow(2, pitches[i]) => float rate => tones[i].rate;
+                    
+                    
+                    // compute loundess for each tone
+                    Math.gauss( pitches[i], MU, SIGMA ) * SCALE => float intensity;
+                    
+                    // <<< i, rate, intensity >>>;
+                    // map intensity to amplitude
+                    intensity*96 => Math.dbtorms => tones[i].gain;
+                    // increment pitch
+                    INC +=> pitches[i];
+                    // wrap (for positive INC)
+                    if( pitches[i] > 1.0 ) -3.0 => pitches[i];
+                    // wrap (for negative INC)
+                    else if( pitches[i] < -3.0 ) 1.0 => pitches[i];
+                }
+                
+                // advance time
+                T => now;
+            }
+        }
+}
+
+/*
+Shepherd s => dac;
+0 => s.INC;
+*/
 
 // [-0.5, 0.75, -1, 0.6] 
 [-1.0, -2.0, -0.5] @=> float rates[];
@@ -124,86 +197,196 @@ xmit.start( "/video/player.rate" );
 2 => xmit.add;
 xmit.send();
 
+setBlend(0);
+setFrame(0);
+fadeIn(5::second);
+
 0 => float rateDelta;
 
 // 5::second => now;
 
 spork~ bass();
 
-Bright b1 => dac;
-Bright b2 => dac;
+
+Bright b1 => LPF f => NRev r => dac;
+Bright b2 => f => r => dac;
+
+0.05 => r.mix;
+
+f.set(500, 1.5);
+0.3 => f.gain;
+
+0 => b2.gain; // phase in b2 at some point
 
 -0.5 => b1.rate;
 -0.25 => b2.rate;
 
-/*
-<<< b2.rate >>>;
-spork~ b1.run(false);
-spork~ b2.run(true);
-*/
+
+controlCutoff(f);
+
+while(true) {
+    for (0 => int i; i < 50; i++) {
+        74 * i + 50 => b1.minDur;
+        74 * i + 50 => b2.minDur;
+        74 * i + 1000 => f.freq;
+        0.02 * i => setBlend;
+        150::ms => now;
+    }
+    for (50 => int i; i > 0; i--) {
+        74 * i + 50 => b1.minDur;
+        74 * i + 50 => b2.minDur;
+        74 * i + 1000 => f.freq;
+        0.02 * i => setBlend;
+        150::ms => now;
+    }
+
+}
+
+
 
 1::week => now;
-// create grains, rotate record and play bufs as needed
-// shouldn't click as long as the grainlen < bufferlen
-/*
-while( true )
-{
-    // new rate and duration
-    Math.random2f(0.5, 0.5) => float newrate;
-    Math.random2f(209, 400)::ms => dur newdur;
-    
-    
-    rates[Math.random2(0, rates.cap()-1)] => newrate;
-    
-    rateDelta +=> newrate;
-    0.5 *=> newrate;
 
-    // spork a grain!
-    spork ~ getgrain(lisa, newdur, 40::ms, 40::ms, newrate);
-    // freq
-    // freqmod.last() * 400. + 800. => s.freq;
-    // advance time
+fun void controlCutoff(LPF filter) {
+    Envelope e => blackhole;
+    30::second => e.duration;
+    // filter.freq() => e.value;
+    // 20000 => e.target;
     
-    // if (offset > 30::ms || offset < 0.5::ms) 1::ms => duration;
+    <<< filter.freq() >>>;
+    <<< e.value() >>>;
+    <<< e.target() >>>;
+    <<< e.rate() >>>;
     
-    // <<< offset / ms >>>;
-    offset => now;
-    // -0.00000005 +=> rateDelta;
-    -0.000005 +=> rateDelta;
-    // delta +=> offset;
+    while (true) {
+        5::second => now;
+        e.keyOn();
+        while (e.value() < e.target()) {
+            // e.value() * 19000 + 500 => filter.freq;
+            scale(e.value(), 0, 1, 500, 20000) => filter.freq;
+            
+            // <<< filter.freq() >>>;
+            10::ms => now;
+        }
+        
+        5::second => now;
+        
+        e.keyOff();
+        
+        while (e.value() > e.target()) {
+            scale(e.value(), 0, 1, 500, 20000) => filter.freq;
+            // <<< filter.freq() >>>;
+            10::ms => now;
+        }
+    
+    }
+    
+    10::second => now;
+    
+    e.keyOff();
+    10::second => now;
+    // filter
 }
-*/
+
+fun float scale(float in, float inMin, float inMax, float outMin, float outMax) {
+    (in - inMin) / (inMax - inMin) => float scaled;
+    return scaled * (outMax - outMin) + outMin;
+}
 
 fun void bass() {
+    26::second => dur start;
+    27::second => dur end;
+
+    //28::second => start;
+    //30::second => end;
+
     load( me.dir() + "concertina1.wav", start, end) @=> LiSa @ lisabass;
-    lisabass => NRev r;
+    lisabass => NRev r => dac;
     
-    3 => lisabass.gain;
+    2 => lisabass.gain;
 
     while (true) {
         10::second => now;
-        <<< "bass" >>>;
-        spork~ getgrain(lisabass, 3::second, 40::ms, 800::ms, 0.0625);
-        spork~ controlRate();
+        Math.randomf() => float chance;
+        
+        if (chance > 0.5) {
+            <<< "bass", chance >>>;
+            spork~ getgrain(lisabass, 3::second, 100::ms, 800::ms, 0.0625);
+            spork~ controlRate(3::second);
+        } else {
+            <<< "long bass" >>>;
+            spork~ getgrain(lisabass, 5::second, 100::ms, 800::ms, 0.0625);
+            spork~ controlRate(5::second);
+        }
+        spork~ blendTest();
+        // 10::second => now;
     }
 }
 
-fun void controlRate() {
+fun void controlRate(dur len) {
     // start the message...
-    xmit.start( "/video/player.rate" );
+    xmit.start( "/video/player/rate" );
     
     1 => xmit.add;
     
     xmit.send();
 
-    3::second => now;
+    len => now;
     
-    xmit.start( "/video/player.rate" );
+    xmit.start( "/video/player/rate" );
     
     2 => xmit.add;
     
     xmit.send();
 
+}
+
+fun void blendTest() {
+    
+    // This really needs to be done at 24fps...
+    for (0 => int i; i < 50; i++) {
+        0.01 * i => setBlend;
+        60::ms => now;
+    }
+    for (50 => int i; i > 0; i--) {
+        0.01 * i => setBlend;
+        45::ms => now;
+    }
+}
+
+fun void setBlend(float val) {
+    xmit.start( "/video/player/blend" );
+    val=> xmit.add;
+    xmit.send();
+}
+
+fun void setFrame(int frame) {
+    xmit.start( "/video/player/frame" );
+    
+    frame => xmit.add;
+    
+    xmit.send();
+}
+
+fun void fadeIn(dur d) {
+    // now + d => time until;
+    
+    xmit.start("/video/player/fade");
+    
+    1 => xmit.add;
+    
+    xmit.send();
+
+    
+    /*
+    // TODO
+    while(now < until) {
+        xmit.start( "/video/player/fade" );
+    
+        frame => xmit.add;
+    
+        xmit.send();
+    }
+    */
 }
 
 
