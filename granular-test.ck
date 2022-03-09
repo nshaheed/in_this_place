@@ -207,6 +207,7 @@ fadeIn(5::second);
 // 5::second => now;
 
 spork~ bass();
+// bass2();
 
 
 Bright b1 => LPF f => NRev r => dac;
@@ -315,18 +316,20 @@ fun void bass() {
     while (true) {
         Math.randomf() => float chance;
         
-        if (chance > 0.3) {
-            <<< "bass", chance >>>;
-            spork~ getgrain(lisabass, 3::second, 100::ms, 800::ms, 1);
+        if (chance > 1.3) {
+            <<< "bass" >>>;
+           //  spork~ getgrain(lisabass, 3::second, 100::ms, 800::ms, 1);
+            spork~ bass2(25::ms, 3::second, 800::ms);
             spork~ controlRate(3::second);
-            spork~ blendASR(400::ms, 2::second, 800::ms, 0.3);
+            spork~ blendASR(1600::ms, 2::second, 800::ms, 0.3);
 
             10::second => now;
         } else {
             <<< "long bass" >>>;
-            spork~ getgrain(lisabass, 5::second, 400::ms, 1600::ms, 2);
+            // spork~ getgrain(lisabass, 5::second, 400::ms, 1600::ms, 2);
+            spork~ bass2(25::ms, 5::second, 1600::ms);
             spork~ controlRate(5::second);
-            spork~ blendASR(1600::ms, 3.5::second, 2000::ms, 0.5);
+            spork~ blendASR(1600::ms, (5-1.6)::second, 2000::ms, 0.5);
             
             if (Math.random2f(0,1) > 0.5) {
                 spork~ launchFloaties();
@@ -338,16 +341,33 @@ fun void bass() {
     }
 }
 
-fun void bass2() {
-    TriOsc t => NRev r => dac;
-    0.1 => r.mix;
-    
-    0.4 => t.gain;
-    
-    12 => Std.mtof => t.freq;
+fun void bass2(dur atk, dur sustain, dur release) {
+    <<< "bass2" >>>;
+    Blit t1 => ADSR e => Gain g => PRCRev r => dac;
+    Blit t2 => e;
+    0.0 => r.mix;
     
     
-    30::second => now;
+    Math.random2(2,4) => t1.harmonics => t2.harmonics; 
+    
+    0.4 => g.gain;
+  
+  
+    0.5 => t2.gain;
+
+    
+    36 => Std.mtof => t1.freq;
+    48.05 => Std.mtof => t2.freq;
+    
+    e.set(atk, 100::ms, 0.8, release);
+    
+    e.keyOn();
+    
+    sustain => now;
+    
+    e.keyOff();
+    release => now;
+    1::second => now;
 }
 
 
