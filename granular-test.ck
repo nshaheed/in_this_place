@@ -318,7 +318,6 @@ fun void bass() {
 
     //28::second => start;
     //30::second => end;
-
     load( me.dir() + "concertina_bass2.wav", start, end) @=> LiSa @ lisabass;
     lisabass => Dyno d => NRev r => dac;
     
@@ -328,8 +327,8 @@ fun void bass() {
     
     0.4 => lisabass.gain;
 
-    // 15 ::second => now;
-    1::second => now;
+    15 ::second => now;
+    // 1::second => now;
 
     while (true) {
         Math.randomf() => float chance;
@@ -391,7 +390,7 @@ fun void bass2(dur atk, dur sustain, dur release) {
     
     <<< t1.harmonics() >>>;
     
-    1.2 => g.gain;
+    1.1 => g.gain;
     
     0.4 => float gainScale;
     1 * gainScale => t1.gain;
