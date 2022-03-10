@@ -13,9 +13,8 @@
 // note that unlike SndBuf, LiSa wants a dur (not an int) to specify the index
 // of the sample location
 //-----------------------------------------------------------------------------
-Machine.add(me.dir() + "/ks-chord.ck");
 
-(1.0 / 48.0)::second => dur framerate; // seconds per frame
+(1.0 / 60.0)::second => dur framerate; // seconds per frame
 
 700 => float filterCutoffMax; // set the filter cutoff max freq that the sweep will use
 // 20000 => filterCutoffMax;
@@ -349,7 +348,7 @@ fun void bass() {
                 scale(f.freq(), 2000, 20000, 0.2, 0.9) => floatChance;
             }
             
-            math.randomf() => float chance;
+            Math.randomf() => float chance;
             
             if (chance < floatChance) {
                 spork~ launchFloaties();
@@ -396,7 +395,7 @@ fun void bass2(dur atk, dur sustain, dur release) {
     1 * gainScale => t1.gain;
     0.5 * gainScale => t2.gain;
     0.25 * gainScale => t3.gain;
-
+ 
     
     36 => Std.mtof => t1.freq;
     48.05 => Std.mtof => t2.freq;
