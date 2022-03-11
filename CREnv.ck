@@ -7,9 +7,7 @@ public class CREnv {
     
     fun void run() {
         while(true) {
-            if (vc != null) {
-                e.value() => vc.setValue;
-            }
+            e.value() => vc.setValue;
             rate => now;
         }
     }
@@ -35,8 +33,15 @@ public class CREnv {
         duration => e.duration;
     }
     
+    fun void set(string address, dur ctrl_rate) {
+        VideoController vc;
+        address => vc.address;
+        ctrl_rate => rate;
+    }
+    
     fun void value(float val) {
         val => e.value;
+        val => vc.setValue;
     }
     
     fun void target(float tar) {
@@ -57,7 +62,5 @@ public class CREnv {
     
     fun void keyOff() {
         e.keyOff();
-    }
-    
-    
+    }   
 }

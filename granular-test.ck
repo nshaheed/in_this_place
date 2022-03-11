@@ -19,6 +19,13 @@
 700 => float filterCutoffMax; // set the filter cutoff max freq that the sweep will use
 // 20000 => filterCutoffMax;
 
+/*
+CREnv playerRate;
+CREnv playerBlend;
+CREnv playerFade;
+VideoController playerFrame
+*/
+
 // each one of these needs to scale the playback rate chagne based off of its base rate
 // otherwise they go out of tune, which is actualy kinda cool. Maybe this could be an arc?
 // progression: some amount of time with proper shepherd, then start moving out of sync.
