@@ -7,7 +7,10 @@ public class CREnv {
     
     fun void run() {
         while(true) {
-            e.value() => vc.setValue;
+            // a little bit of cheeky optimization here
+            if (e.value() != vc.value) {
+                e.value() => vc.setValue;
+            }
             rate => now;
         }
     }
@@ -31,6 +34,12 @@ public class CREnv {
         vidCon @=> vc;
         ctrl_rate => rate;
         duration => e.duration;
+    }
+    
+    fun void set(string address, float value, dur ctrl_rate) {
+        value => e.value;
+        address => vc.address;
+        ctrl_rate => rate;
     }
     
     fun void set(string address, dur ctrl_rate) {
