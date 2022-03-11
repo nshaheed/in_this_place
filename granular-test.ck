@@ -14,17 +14,11 @@
 // of the sample location
 //-----------------------------------------------------------------------------
 
-(1.0 / 60.0)::second => dur framerate; // seconds per frame
+(1.0 / 30.0)::second => dur framerate; // seconds per frame
 
 700 => float filterCutoffMax; // set the filter cutoff max freq that the sweep will use
 // 20000 => filterCutoffMax;
 
-/*
-CREnv playerRate;
-CREnv playerBlend;
-CREnv playerFade;
-VideoController playerFrame
-*/
 
 // each one of these needs to scale the playback rate chagne based off of its base rate
 // otherwise they go out of tune, which is actualy kinda cool. Maybe this could be an arc?
@@ -185,30 +179,19 @@ Shepherd s => dac;
 0.25::ms => dur offset;
 0.1::ms => dur delta;
 
-// OSC STUFF
+// init video player controls
+CREnv playerRate;
+CREnv playerBlend;
+CREnv playerFade;
+VideoController playerFrame;
 
-// destination host name
-"localhost" => string hostname;
-// destination port number
-1234 => int port;
+// start at 2, address, control rate
+playerRate.set("/video/player/rate", 2.0, framerate);
+playerBlend.set("/video/player/blend", 0.0, framerate);
+playerFade.set("/video/player/fade", 0.0, framerate);
+playerFrame.set("/video/player/frame", 0);
 
-// check command line
-if( me.args() ) me.arg(0) => hostname;
-if( me.args() > 1 ) me.arg(1) => Std.atoi => port;
 
-// sender object
-OscOut xmit;
-
-// aim the transmitter at destination
-xmit.dest( hostname, port );
-
-// init
-xmit.start( "/video/player.rate" );
-2 => xmit.add;
-xmit.send();
-
-setBlend(0);
-setFrame(0);
 spork~ fadeIn(15::second);
 
 0 => float rateDelta;
@@ -231,7 +214,6 @@ f.set(500, 1.5);
 
 -0.5 => b1.rate;
 -0.25 => b2.rate;
-
 
 spork~ controlCutoffBounds();
 spork~ watchFilterCutoff();
@@ -433,103 +415,43 @@ fun void watchFilterCutoff() {
     }
 }
 
-fun void controlRate(dur len) {
-    setRate(1);
-    len => now;
-    setRate(2);
-}
-
 fun void rateASR(dur atk, dur sustain, dur release, float rate) {
-    ADSR e => blackhole;
-    e.set(atk, 0::ms, 1.0, release);
-        
-    e.keyOn();
+    rate => playerRate.target;
+    atk => playerRate.duration;
     
-    while(e.value() < e.target()) {
-        scale(e.value(), 0, 1, 2, rate) => setRate;
-        framerate => now;
-    }
-    e.value() * rate => setRate;
+    playerRate.keyOn();
     
-    sustain => now;
+    atk + sustain => now;
     
-    e.keyOff();
-    while(e.value() > 0.0) {
-        scale(e.value(), 0, 1, 2, rate) => setRate;
-        framerate => now;
-    }
-}
-
-fun void setRate(float val) {
-    xmit.start( "/video/player/rate" );
-    val => xmit.add;    
-    xmit.send();
+    2 => playerRate.target;
+    release => playerRate.duration;
+    
+    playerRate.keyOn();
+    release => now;
 }
 
 fun void blendASR(dur atk, dur sustain, dur release, float gain) {
-    ADSR e => blackhole;
-    e.set(atk, 0::ms, 1.0, release);
+    gain => playerBlend.target;
+    atk => playerBlend.duration;
     
-    scale(f.freq(), 500.0, 20000.0, 0.3, 1) => gain;
+    playerBlend.keyOn();
     
-    e.keyOn();
+    atk + sustain => now;
     
-    while(e.value() < e.target()) {
-        scale(e.value(), 0, 1, 0, gain) => setBlend;
-        framerate => now;
-    }
-    scale(e.value(), 0, 1, 0, gain) => setBlend;
-
-    now + sustain => time next;
+    0 => playerBlend.target;
+    release => playerBlend.duration;
     
-    while(now < next) {
-        scale(e.value(), 0, 1, 0, gain) => setBlend;
-        framerate => now;
-    }
-    scale(e.value(), 0, 1, 0, gain) => setBlend;
- 
-    
-    e.keyOff();
-    while(e.value() > 0.0) {
-        scale(e.value(), 0, 1, 0, gain) => setBlend;
-        framerate => now;
-    }
-    scale(e.value(), 0, 1, 0, gain) => setBlend;
+    playerBlend.keyOn();
+    release => now;
 }
 
-fun void setBlend(float val) {
-    xmit.start( "/video/player/blend" );
-    val=> xmit.add;
-    xmit.send();
-}
-
-fun void setFrame(int frame) {
-    xmit.start( "/video/player/frame" );
+fun void fadeIn(dur d) {    
+    d => playerFade.duration;
+    1 => playerFade.target;
     
-    frame => xmit.add;
-    
-    xmit.send();
+    playerFade.keyOn();
+    d => now;
 }
-
-fun void fadeIn(dur d) {
-    
-    Envelope e => blackhole;
-    d => e.duration;
-    e.keyOn();
-    
-    while(e.value() < e.target()) {
-        e.value() => setFade;
-        framerate => now;
-    }
-}
-
-fun void setFade(float val) {
-    xmit.start("/video/player/fade");
-    val => xmit.add;
-    xmit.send();
-}
-
-
  
 fun void launchFloaties() {
     load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties1;

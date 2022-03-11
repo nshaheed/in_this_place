@@ -37,8 +37,8 @@ public class CREnv {
     }
     
     fun void set(string address, float value, dur ctrl_rate) {
-        value => e.value;
         address => vc.address;
+        value => e.value => vc.setValue;
         ctrl_rate => rate;
     }
     
