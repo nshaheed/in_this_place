@@ -183,16 +183,23 @@ Shepherd s => dac;
 CREnv playerRate;
 CREnv playerBlend;
 CREnv playerFade;
+CREnv playerPeak;
+CREnv playerScale;
 VideoController playerFrame;
 
 // start at 2, address, control rate
 playerRate.set("/video/player/rate", 2.0, framerate);
 playerBlend.set("/video/player/blend", 0.0, framerate);
 playerFade.set("/video/player/fade", 0.0, framerate);
+playerPeak.set("/video/player/peak", -6.5, framerate);
+playerScale.set("/video/player/scale", 0, framerate);
 playerFrame.set("/video/player/frame", 0);
 
+// 10::second => now;
 
-spork~ fadeIn(15::second);
+
+
+spork~ fadeIn(10::second);
 
 0 => float rateDelta;
 
@@ -202,10 +209,14 @@ spork~ bass();
 // bass2();
 
 
-Bright b1 => LPF f => NRev r => dac;
-Bright b2 => f => r => dac;
+Bright b1 => LPF f => Pan2 p => dac;;
+NRev r => dac;
+Bright b2 => f => p;
 
-0.05 => r.mix;
+p.left => NRev r1 => dac.left;
+p.right => NRev r2 => dac.right;
+
+0.05 => r.mix => r1.mix => r2.mix;
 
 f.set(500, 1.5);
 0.25 => f.gain;
@@ -216,6 +227,7 @@ f.set(500, 1.5);
 -0.25 => b2.rate;
 
 spork~ controlCutoffBounds();
+spork~ brightPan();
 spork~ watchFilterCutoff();
 controlCutoff(f);
 
@@ -274,6 +286,17 @@ fun void controlCutoff(LPF filter) {
     // filter
 }
 
+fun void brightPan() {
+    SinOsc s => blackhole;
+    0.04 => s.freq;
+    0 => p.pan;
+    
+    while (true) {
+        scale(f.freq(), 500, 20000, 0, 0.75) * s.last() => p.pan;
+        1::ms => now;
+    }
+}
+
 // the score for controlling cutoff bounds.
 fun void controlCutoffBounds() {
     5::second => now;
@@ -315,11 +338,30 @@ fun void bass() {
     
     0.4 => lisabass.gain;
 
-    15 ::second => now;
+    20 ::second => now;
     // 1::second => now;
+    
+    
+    0 => int counter;
 
     while (true) {
         Math.randomf() => float chance;
+        <<< "chance", chance >>>;
+        if (counter == 0) {
+            1 => chance;
+        }
+        
+        // Stepped introduction to the full values.
+        if (counter == 0) {
+            3600::ms => playerPeak.duration;
+            -2 => playerPeak.target;
+            playerPeak.keyOn();
+        } else if (counter == 1) {
+            3600::ms => playerPeak.duration;
+            0 => playerPeak.target;
+            playerPeak.keyOn();
+
+        }
         
         if (chance > 0.4) {
             <<< "bass" >>>;
@@ -327,7 +369,15 @@ fun void bass() {
             spork~ bass2(25::ms, 3::second, 1200::ms);
             // spork~ controlRate(3::second);
             spork~ rateASR(0::ms, 3::second, 2400::ms, 1);
-            spork~ blendASR(1600::ms, 2::second, 1600::ms, 0.3);
+            
+            0.3 => float blendVal;
+            2400::ms => dur blendRelease;
+            if (counter == 0) {
+                0.2 => blendVal;
+                3200::ms => blendRelease;
+            }
+            
+            spork~ blendASR(1600::ms, 3::second, blendRelease, blendVal);
             
             // scale chance of activating floaties by filter cutoff
             float floatChance;
@@ -360,6 +410,7 @@ fun void bass() {
 
             20::second => now;
         }
+        1 +=> counter;
         // 10::second => now;
     }
 }
@@ -447,8 +498,7 @@ fun void blendASR(dur atk, dur sustain, dur release, float gain) {
 
 fun void fadeIn(dur d) {    
     d => playerFade.duration;
-    1 => playerFade.target;
-    
+    1 => playerFade.target;           
     playerFade.keyOn();
     d => now;
 }
