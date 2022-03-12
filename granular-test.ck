@@ -309,6 +309,11 @@ fun void brightPan() {
 
 // the score for controlling cutoff bounds.
 fun void controlCutoffBounds() {
+    /*
+    20000 => filterCutoffMax;
+    20000 => f.freq;
+    */
+    
     5::second => now;
     
     Envelope e => blackhole;
@@ -421,12 +426,10 @@ fun void bass() {
             20::second => now;
         }
         1 +=> counter;
-        // 10::second => now;
     }
 }
 
 fun void bass2(dur atk, dur sustain, dur release) {
-    <<< "bass2" >>>;
     Blit t1 => ADSR e => Gain g => GVerb r => dac;
     Blit t2 => e;
     Blit t3 => Envelope e2 => e;
@@ -443,7 +446,7 @@ fun void bass2(dur atk, dur sustain, dur release) {
     
     (sustain-1::second)/2 => e2.duration;
     
-    <<< t1.harmonics() >>>;
+    <<< "bass2:", t1.harmonics(), "harmonics" >>>;
     
     1.1 => g.gain;
     
@@ -520,13 +523,12 @@ fun void fadeIn(dur d) {
 }
  
 fun void launchFloaties() {
+    // two lisas for spatialization
     load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties1;
     load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties2;
     
-    <<< "floaties" >>>;
 
     // Need for stereo reverb
-
     NRev rl => dac;
     NRev rr => dac;
 
@@ -548,9 +550,16 @@ fun void launchFloaties() {
 
     0.75 => floaties1.gain => floaties2.gain;
 
+    // scale floaty range with the filter cutoff
+    scaleCutoff(2,6) => float minFloat;
+    scaleCutoff(3,10) => float maxFloat;
 
-    Math.random2(4,8) => int count;
-    // 1 => count;
+    Math.round(minFloat) $ int => int min;
+    Math.round(maxFloat) $ int => int max;
+
+    Math.random2(min, max) => int count;
+    <<< "floaties", count >>>;
+
     for (0 => int i; i < count; i++ ) {
         
         [0.5, 1.0, 2.0] @=> rates;
@@ -566,13 +575,14 @@ fun void launchFloaties() {
             spork~ getgrain2(floaties2, 3::second, 1000::ms, 1000::ms, 1 * rate);
         }
         
-        framerate * 6 * Std.fabs(rate) => now;
+        6::framerate * Std.fabs(rate) => now;
     }
     
     5::second => now;
 
 }
     
+// this way I can keep the frequency bounds in one spot.
 fun float scaleCutoff(float min, float max) {
     return scale(f.freq(), 500, 20000, min, max);
 }
