@@ -302,7 +302,7 @@ fun void brightPan() {
     0 => p.pan;
     
     while (true) {
-        scale(f.freq(), 500, 20000, 0, 0.75) * s.last() => p.pan;
+        scaleCutoff(0, 0.75) * s.last() => p.pan;
         1::ms => now;
     }
 }
@@ -413,7 +413,7 @@ fun void bass() {
             spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
             
             // scale chance of activating floaties by filter cutoff
-            scale(f.freq(), 500, 200000, 0.75, 1) => float floatChance;
+            scaleCutoff(0.75, 1) => float floatChance;
             if (Math.randomf() < floatChance) {
                 spork~ launchFloaties();
             }
@@ -573,6 +573,10 @@ fun void launchFloaties() {
 
 }
     
+fun float scaleCutoff(float min, float max) {
+    return scale(f.freq(), 500, 20000, min, max);
+}
+
 // sporkee: a grain!
 fun void getgrain( LiSa lisa, dur grainlen, dur rampup, dur rampdown, float rate )
 {
