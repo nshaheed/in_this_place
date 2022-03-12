@@ -197,6 +197,14 @@ playerFrame.set("/video/player/frame", 0);
 
 // 10::second => now;
 
+// Set up gverb
+GVerb r => dac;
+
+50 => r.roomsize;
+0.5::second => r.revtime;
+0.3 => r.dry;
+0.1 => r.early;
+0.1 => r.tail;
 
 
 spork~ fadeIn(10::second);
@@ -209,14 +217,16 @@ spork~ bass();
 // bass2();
 
 
-Bright b1 => LPF f => Pan2 p => dac;;
-NRev r => dac;
+Bright b1 => LPF f => Pan2 p => r => dac;;
+// NRev r => dac;
 Bright b2 => f => p;
 
+/*
 p.left => NRev r1 => dac.left;
 p.right => NRev r2 => dac.right;
 
 0.05 => r.mix => r1.mix => r2.mix;
+*/
 
 f.set(500, 1.5);
 0.25 => f.gain;
@@ -417,10 +427,16 @@ fun void bass() {
 
 fun void bass2(dur atk, dur sustain, dur release) {
     <<< "bass2" >>>;
-    Blit t1 => ADSR e => Gain g => JCRev r => dac;
+    Blit t1 => ADSR e => Gain g => GVerb r => dac;
     Blit t2 => e;
     Blit t3 => Envelope e2 => e;
-    0.1 => r.mix;
+    // 0.1 => r.mix;
+    
+    50 => r.roomsize;
+    0.5::second => r.revtime;
+    0.3 => r.dry;
+    0.1 => r.early;
+    0.1 => r.tail;
     
     Math.random2(2,4) => t1.harmonics => t2.harmonics;
     Math.random2(3,5) => t3.harmonics; 
@@ -455,7 +471,7 @@ fun void bass2(dur atk, dur sustain, dur release) {
     
     e.keyOff();
     release => now;
-    1::second => now;
+    2::second => now;
 }
 
 
@@ -508,25 +524,31 @@ fun void launchFloaties() {
     load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties2;
     
     <<< "floaties" >>>;
-    
+
     // Need for stereo reverb
+
     NRev rl => dac;
     NRev rr => dac;
-   
+
     0.25 => rl.mix => rr.mix;
-    
-    floaties1 => Pan2 p1;
-    floaties2 => Pan2 p2;
-    
+
+
+    floaties1 => Pan2 p1; // => r;
+    floaties2 => Pan2 p2; // => r;
+
+
     p1.left => rl;
     p2.left => rl;
     p1.right => rr;
     p2.right => rr;
-    
-    -0.75 => p1.pan;
-    0.75 => p2.pan;
-    
-    
+
+
+    -0.5 => p1.pan;
+    0.5 => p2.pan;
+
+    0.75 => floaties1.gain => floaties2.gain;
+
+
     Math.random2(4,8) => int count;
     // 1 => count;
     for (0 => int i; i < count; i++ ) {
