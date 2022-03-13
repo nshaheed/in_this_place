@@ -404,6 +404,8 @@ fun void bass() {
             
             Math.randomf() => float chance;
             
+            0 => chance;
+                        
             if (chance < floatChance) {
                 spork~ launchFloaties();
             }
@@ -537,6 +539,9 @@ fun void launchFloaties() {
 
     floaties1 => Pan2 p1; // => r;
     floaties2 => Pan2 p2; // => r;
+    
+    rl => Gain fakeGain => blackhole;
+    rr => fakeGain;
 
 
     p1.left => rl;
@@ -551,14 +556,28 @@ fun void launchFloaties() {
     0.75 => floaties1.gain => floaties2.gain;
 
     // scale floaty range with the filter cutoff
-    scaleCutoff(2,6) => float minFloat;
-    scaleCutoff(3,10) => float maxFloat;
+    // scaleCutoff(2,6) => float minFloat;
+    // scaleCutoff(3,10) => float maxFloat;
+    
+    // random value between 0 and 1 to scale to current range
+    // Math.randomf() => float amount;
+    
+    // 30 => float minFloat;
+    // 40 => float maxFloat;
+    
+    scaleCutoff(0,1) => float scaler;
+    Math.pow(scaler, 4) => scaler; // make scaling exponential
+    scale(scaler, 0, 1, 2, 30) => float minFloat;
+    scale(scaler, 0, 1, 3, 40) => float maxFloat;
+
 
     Math.round(minFloat) $ int => int min;
     Math.round(maxFloat) $ int => int max;
 
     Math.random2(min, max) => int count;
-    <<< "floaties", count >>>;
+    <<< "floaties", count, min, max >>>;
+    
+    spork~ setEdge(fakeGain);
 
     for (0 => int i; i < count; i++ ) {
         
@@ -580,6 +599,31 @@ fun void launchFloaties() {
     
     5::second => now;
 
+}
+
+fun void setEdge(Gain input) {
+    while(true) {
+        getPeak(input, framerate) => float peak;
+        // scale(input.last(), 0, 1, 
+        scale(peak, 0, 0.25, 0, 1) => float scaledPeak => playerPeak.target;
+        // <<< "peak", peak, scaledPeak >>>;
+        framerate => playerPeak.duration;
+        playerScale.keyOn();
+        // framerate => now;
+    }
+}
+
+fun float getPeak(Gain input, dur d) {
+    now + d => time later;
+    0 => float peak;
+    
+    
+    while (now < later) {
+        Math.max(peak, Std.fabs(input.last())) => peak;
+        samp => now;
+    }
+    
+    return peak;
 }
     
 // this way I can keep the frequency bounds in one spot.
