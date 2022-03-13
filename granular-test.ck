@@ -602,14 +602,28 @@ fun void launchFloaties() {
 }
 
 fun void setEdge(Gain input) {
+    input => FFT fft =^ RMS rms => blackhole;
+    // set parameters
+    (framerate / samp) $ int => fft.size;
+    // set hann window
+    Windowing.hann((framerate / samp) $ int) => fft.window;
+    
     while(true) {
-        getPeak(input, framerate) => float peak;
+        // getPeak(input, framerate) => float peak;
         // scale(input.last(), 0, 1, 
-        scale(peak, 0, 0.25, 0, 1) => float scaledPeak => playerPeak.target;
+        
+        // upchuck: take fft then rms
+        rms.upchuck() @=> UAnaBlob blob;
+        // print out RMS
+        <<< blob.fval(0) >>>;
+        blob.fval(0) => float peak;
+        
+        
+        scale(peak, 0, 0.001, 0, 1) => float scaledPeak => playerPeak.target;
         // <<< "peak", peak, scaledPeak >>>;
-        framerate => playerPeak.duration;
+        4::framerate => playerPeak.duration;
         playerScale.keyOn();
-        // framerate => now;
+        4::framerate => now;
     }
 }
 
