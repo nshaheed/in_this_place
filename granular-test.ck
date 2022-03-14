@@ -212,8 +212,6 @@ spork~ fadeIn(10::second);
 0 => float rateDelta;
 
 // 5::second => now;
-
-spork~ bass();
 // bass2();
 
 
@@ -242,7 +240,13 @@ e2.set(20::ms, 8::ms, 0.9, 1::second);
 spork~ controlCutoffBounds();
 spork~ brightPan();
 spork~ watchFilterCutoff();
-controlCutoff(f);
+spork~ controlCutoff(f);
+
+// the score - all time advances should be handled here
+20::second => now;
+introBass();
+bass();
+
 
 while(true) {
     for (0 => int i; i < 50; i++) {
@@ -343,58 +347,40 @@ fun float scale(float in, float inMin, float inMax, float outMin, float outMax) 
     return scaled * (outMax - outMin) + outMin;
 }
 
+fun void introBass() {
+    [-2.0, 0] @=> float peakTargets[];
+    [2.0, 1] @=> float rateTargets[];
+    
+    for (0 => int i; i < 2; i++) {
+        3600::ms => playerPeak.duration;
+        peakTargets[i] => playerPeak.target;
+        playerPeak.keyOn();
+        
+        spork~ bass2(25::ms, 3::second, 1200::ms);
+        spork~ rateASR(0::ms, 5400::ms, 2400::ms, rateTargets[i], false);
+
+        15::second => now;
+    }
+}
+
 fun void bass() {
-    41::second => dur start;
-    49::second => dur end;
-
-    //28::second => start;
-    //30::second => end;
-    load( me.dir() + "concertina_bass2.wav", start, end) @=> LiSa @ lisabass;
-    lisabass => Dyno d => NRev r => dac;
-    
-    0.1 => r.mix;
-    
-    d.compress();
-    
-    0.4 => lisabass.gain;
-
-    20 ::second => now;
-    // 1::second => now;
-    
-    
     0 => int counter;
+
+    6 => playerScale.target;
+    1::ms => playerScale.duration;
+    playerScale.keyOn();
+
 
     while (true) {
         Math.randomf() => float chance;
         <<< "chance", chance >>>;
-        if (counter == 0) {
-            1 => chance;
-        }
-        
-        // Stepped introduction to the full values.
-        if (counter == 0) {
-            3600::ms => playerPeak.duration;
-            -2 => playerPeak.target;
-            playerPeak.keyOn();
-        } else if (counter == 1) {
-            3600::ms => playerPeak.duration;
-            0 => playerPeak.target;
-            playerPeak.keyOn();
-        } else if (counter == 2) {
-            6 => playerScale.target;
-            1::ms => playerScale.duration;
-            playerScale.keyOn();
-        }
-        
+
         if (chance > 0.4) {
             <<< "bass" >>>;
-           //  spork~ getgrain(lisabass, 3::second, 100::ms, 800::ms, 1);
             spork~ bass2(25::ms, 3::second, 1200::ms);
-            // spork~ controlRate(3::second);
 
             Math.randomf() => float chance;
             0 => chance;
-            false => int negate;
 
             // scale chance of activating floaties by filter cutoff
             float floatChance;
@@ -408,33 +394,23 @@ fun void bass() {
                 spork~ launchFloaties();
             }
 
+            false => int negate;
             spork~ rateASR(0::ms, 5400::ms, 2400::ms, 1, negate);
 
             0.3 => float blendVal;
             2800::ms => dur blendRelease;
-            if (counter == 0) {
-                0.2 => blendVal;
-                3200::ms => blendRelease;
-            }
 
             // don't want to adjust blend while things the fade in is happening
-            if (counter >= 2) {
-                spork~ blendASR(1600::ms, 4::second, blendRelease, blendVal);
-            }
-
+            spork~ blendASR(1600::ms, 4::second, blendRelease, blendVal);
 
             15::second => now;
         } else {
             <<< "long bass" >>>;
-            // spork~ getgrain(lisabass, 5::second, 400::ms, 1600::ms, 2);
             spork~ bass2(25::ms, 5::second, 1600::ms);
-            // spork~ controlRate(5::second);
             spork~ rateASR(0::ms, 5::second, 2000::ms, 1, false);
 
             // don't want to adjust blend while things the fade in is happening
-            if (counter >= 2) {
-                spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
-            }
+            spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
 
             // scale chance of activating floaties by filter cutoff
             scaleCutoff(0.75, 1) => float floatChance;
