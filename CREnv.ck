@@ -2,6 +2,7 @@ public class CREnv {
     Envelope e => blackhole;
     VideoController vc;
     1::second => dur rate;
+    false => int debug;
     
     spork~ run();
     
@@ -10,6 +11,10 @@ public class CREnv {
             // a little bit of cheeky optimization here
             if (e.value() != vc.value) {
                 e.value() => vc.setValue;
+
+                if (debug) {
+                    <<< "[DEBUG CRENV]", e.value() >>>;
+                }
             }
             rate => now;
         }
@@ -61,10 +66,18 @@ public class CREnv {
         d => e.duration;
     }
     
+    fun float getTarget() {
+        return e.target();
+    }
+
     fun dur getDuration() {
         return e.duration();
     }
     
+    fun float getValue() {
+        return e.value();
+    }
+
     fun void keyOn() {
         e.keyOn();
     }

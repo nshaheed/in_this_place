@@ -219,7 +219,7 @@ spork~ bass();
 
 Bright b1 => LPF f => Pan2 p => r => dac;;
 // NRev r => dac;
-Bright b2 => f => p;
+Bright b2 => ADSR e2 => f => p;
 
 /*
 p.left => NRev r1 => dac.left;
@@ -231,10 +231,13 @@ p.right => NRev r2 => dac.right;
 f.set(500, 1.5);
 0.25 => f.gain;
 
-0 => b2.gain; // phase in b2 at some point
+// 0 => b2.gain; // phase in b2 at some point
+1 => b2.gain;
 
 -0.5 => b1.rate;
 -0.25 => b2.rate;
+
+e2.set(20::ms, 8::ms, 0.9, 1::second);
 
 spork~ controlCutoffBounds();
 spork~ brightPan();
@@ -269,6 +272,7 @@ fun void controlCutoff(LPF filter) {
     
     while (true) {
         5::second => now;
+        // e2.keyOn();
         e.keyOn();
         
         filterCutoffMax => float currMax;
@@ -278,6 +282,7 @@ fun void controlCutoff(LPF filter) {
             10::ms => now;
         }
         
+        // 1 => b2.gain;
         5::second => now;
         
         e.keyOff();
@@ -375,7 +380,10 @@ fun void bass() {
             3600::ms => playerPeak.duration;
             0 => playerPeak.target;
             playerPeak.keyOn();
-
+        } else if (counter == 2) {
+            6 => playerScale.target;
+            1::ms => playerScale.duration;
+            playerScale.keyOn();
         }
         
         if (chance > 0.4) {
@@ -383,17 +391,11 @@ fun void bass() {
            //  spork~ getgrain(lisabass, 3::second, 100::ms, 800::ms, 1);
             spork~ bass2(25::ms, 3::second, 1200::ms);
             // spork~ controlRate(3::second);
-            spork~ rateASR(0::ms, 3::second, 2400::ms, 1);
-            
-            0.3 => float blendVal;
-            2400::ms => dur blendRelease;
-            if (counter == 0) {
-                0.2 => blendVal;
-                3200::ms => blendRelease;
-            }
-            
-            spork~ blendASR(1600::ms, 3::second, blendRelease, blendVal);
-            
+
+            Math.randomf() => float chance;
+            0 => chance;
+            false => int negate;
+
             // scale chance of activating floaties by filter cutoff
             float floatChance;
             if (f.freq() < 2000) {
@@ -401,14 +403,25 @@ fun void bass() {
             } else {
                 scale(f.freq(), 2000, 20000, 0.2, 0.9) => floatChance;
             }
-            
-            Math.randomf() => float chance;
-            
-            0 => chance;
-                        
+
             if (chance < floatChance) {
                 spork~ launchFloaties();
             }
+
+            spork~ rateASR(0::ms, 5400::ms, 2400::ms, 1, negate);
+
+            0.3 => float blendVal;
+            2800::ms => dur blendRelease;
+            if (counter == 0) {
+                0.2 => blendVal;
+                3200::ms => blendRelease;
+            }
+
+            // don't want to adjust blend while things the fade in is happening
+            if (counter >= 2) {
+                spork~ blendASR(1600::ms, 4::second, blendRelease, blendVal);
+            }
+
 
             15::second => now;
         } else {
@@ -416,9 +429,13 @@ fun void bass() {
             // spork~ getgrain(lisabass, 5::second, 400::ms, 1600::ms, 2);
             spork~ bass2(25::ms, 5::second, 1600::ms);
             // spork~ controlRate(5::second);
-            spork~ rateASR(0::ms, 5::second, 2000::ms, 1);
-            spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
-            
+            spork~ rateASR(0::ms, 5::second, 2000::ms, 1, false);
+
+            // don't want to adjust blend while things the fade in is happening
+            if (counter >= 2) {
+                spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
+            }
+
             // scale chance of activating floaties by filter cutoff
             scaleCutoff(0.75, 1) => float floatChance;
             if (Math.randomf() < floatChance) {
@@ -444,7 +461,7 @@ fun void bass2(dur atk, dur sustain, dur release) {
     0.1 => r.tail;
     
     Math.random2(2,4) => t1.harmonics => t2.harmonics;
-    Math.random2(3,5) => t3.harmonics; 
+    Math.random2(3,5) => t3.harmonics;
     
     (sustain-1::second)/2 => e2.duration;
     
@@ -487,17 +504,26 @@ fun void watchFilterCutoff() {
     }
 }
 
-fun void rateASR(dur atk, dur sustain, dur release, float rate) {
-    rate => playerRate.target;
+fun void rateASR(dur atk, dur sustain, dur release, float rate, int negate) {
+    1 => float direction;
+    if (playerRate.getValue() < 0) -1 => direction;
+
+    if (negate) -1 * direction => direction;
+
+    Math.fabs(rate) => float magnitude;
+
+    // set direction before attack.
+    direction * playerRate.getValue() => playerRate.value;
+
+    magnitude * direction => playerRate.target;
     atk => playerRate.duration;
-    
+
     playerRate.keyOn();
-    
     atk + sustain => now;
-    
-    2 => playerRate.target;
+
+    direction * 2 => playerRate.target;
     release => playerRate.duration;
-    
+
     playerRate.keyOn();
     release => now;
 }
@@ -596,7 +622,6 @@ fun void launchFloaties() {
         
         6::framerate * Std.fabs(rate) => now;
     }
-    
     5::second => now;
 
 }
@@ -615,15 +640,15 @@ fun void setEdge(Gain input) {
         // upchuck: take fft then rms
         rms.upchuck() @=> UAnaBlob blob;
         // print out RMS
-        <<< blob.fval(0) >>>;
+        /// <<< blob.fval(0) >>>;
         blob.fval(0) => float peak;
         
         
         scale(peak, 0, 0.001, 0, 1) => float scaledPeak => playerPeak.target;
         // <<< "peak", peak, scaledPeak >>>;
-        4::framerate => playerPeak.duration;
+        6::framerate => playerPeak.duration;
         playerScale.keyOn();
-        4::framerate => now;
+        6::framerate => now;
     }
 }
 
