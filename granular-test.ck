@@ -245,7 +245,11 @@ spork~ controlCutoff(f);
 // the score - all time advances should be handled here
 20::second => now;
 introBass();
-bass();
+bass(false);
+bass2Cresc(25::ms, 5::second, 8600::ms);
+e2.keyOn();
+bass(true);
+
 
 
 while(true) {
@@ -363,7 +367,7 @@ fun void introBass() {
     }
 }
 
-fun void bass() {
+fun void bass(int firstFloaty) {
     0 => int counter;
 
     6 => playerScale.target;
@@ -371,12 +375,12 @@ fun void bass() {
     playerScale.keyOn();
 
 
-    while (true) {
+    while (counter < 4) {
         Math.randomf() => float chance;
         <<< "chance", chance >>>;
 
         if (chance > 0.4) {
-            <<< "bass" >>>;
+            <<< "bass", counter >>>;
             spork~ bass2(25::ms, 3::second, 1200::ms);
 
             Math.randomf() => float chance;
@@ -390,7 +394,7 @@ fun void bass() {
                 scale(f.freq(), 2000, 20000, 0.2, 0.9) => floatChance;
             }
 
-            if (chance < floatChance) {
+            if (chance < floatChance || firstFloaty) {
                 spork~ launchFloaties();
             }
 
@@ -405,7 +409,7 @@ fun void bass() {
 
             15::second => now;
         } else {
-            <<< "long bass" >>>;
+            <<< "long bass", counter >>>;
             spork~ bass2(25::ms, 5::second, 1600::ms);
             spork~ rateASR(0::ms, 5::second, 2000::ms, 1, false);
 
@@ -470,6 +474,81 @@ fun void bass2(dur atk, dur sustain, dur release) {
     e.keyOff();
     release => now;
     2::second => now;
+}
+
+fun void bass2Cresc(dur atk, dur sustain, dur release) {
+    Blit t1 => ADSR e => Gain g => GVerb r => dac;
+    Blit t2 => e;
+    Blit t3 => Envelope e2 => g;
+    Blit t4 => Envelope e3 => g;
+    // 0.1 => r.mix;
+    
+    50 => r.roomsize;
+    0.5::second => r.revtime;
+    0.3 => r.dry;
+    0.1 => r.early;
+    0.1 => r.tail;
+    
+    Math.random2(2,4) => t1.harmonics => t2.harmonics;
+    Math.random2(5,5) => t3.harmonics => t4.harmonics;
+    
+    0.5 => t3.phase;
+    
+    sustain => e2.duration => e3.duration;
+    
+    <<< "bass2cresc:", t1.harmonics(), "harmonics" >>>;
+    
+    1.1 => g.gain;
+    
+    0.4 => float gainScale;
+    1 * gainScale => t1.gain;
+    0.5 * gainScale => t2.gain;
+    0.25 * gainScale => t3.gain;
+    0.5 * gainScale => t4.gain;
+ 
+    
+    36 => Std.mtof => t1.freq;
+    48.05 => Std.mtof => t2.freq;
+    60.05 => Std.mtof => t3.freq;
+    67 => Std.mtof => t4.freq;
+    
+    e.set(atk, 100::ms, 0.5, release);
+    
+    e.keyOn();
+    atk + 100::ms => now;
+    
+    1::second => now;
+    /*
+    e2.keyOn();    
+    (sustain-1::second)/2 => now;
+    
+    e2.keyOff();
+    (sustain-1::second)/2 => now;
+    
+    e.keyOff();
+    release => now;
+    2::second => now;
+    */
+    0.5 => e2.target;
+    e2.keyOn();    
+    sustain => now;
+    e.keyOff();
+
+    release => e3.duration;
+    <<< "keyoff" >>>;
+    //e2.keyOn();
+    sustain =>now;
+    2 => e2.target;
+    e2.keyOn();
+    e3.keyOn();
+    release => now;
+    // 2::second => now;
+    
+    50::ms => e2.duration;
+    release * (2.0/3) => e3.duration;
+    e2.keyOff();
+    e3.keyOff();
+    50::ms => now;
 }
 
 
