@@ -352,7 +352,7 @@ fun void introBass() {
     [2.0, 1] @=> float rateTargets[];
     
     for (0 => int i; i < 2; i++) {
-        3600::ms => playerPeak.duration;
+        10::second => playerPeak.duration;
         peakTargets[i] => playerPeak.target;
         playerPeak.keyOn();
         
