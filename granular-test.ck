@@ -195,6 +195,11 @@ playerPeak.set("/video/player/peak", -6.5, framerate);
 playerScale.set("/video/player/scale", 0, framerate);
 playerFrame.set("/video/player/frame", 0);
 
+
+// two lisas for spatialization
+load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties1;
+load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties2;
+
 // 10::second => now;
 
 // Set up gverb
@@ -245,10 +250,10 @@ spork~ controlCutoff(f);
 // the score - all time advances should be handled here
 20::second => now;
 introBass();
-bass(false);
+bassSection1();
 bass2Cresc(25::ms, 5::second, 8600::ms);
 e2.keyOn();
-bass(true);
+bassSection2();
 
 
 
@@ -352,39 +357,67 @@ fun float scale(float in, float inMin, float inMax, float outMin, float outMax) 
 }
 
 fun void introBass() {
-    [-2.0, 0] @=> float peakTargets[];
+    [-2.0, -5] @=> float peakTargets[];
+    [0.0, 6] @=> float scaleTargets[];
     [2.0, 1] @=> float rateTargets[];
+    [10::second, 8.8::second] @=> dur durValues[];
     
     for (0 => int i; i < 2; i++) {
-        10::second => playerPeak.duration;
+        durValues[i] => playerPeak.duration;
         peakTargets[i] => playerPeak.target;
         playerPeak.keyOn();
         
-        spork~ bass2(25::ms, 3::second, 1200::ms);
+        durValues[i] => playerScale.duration;
+        scaleTargets[i] => playerScale.target;
+        playerScale.keyOn();
+        
+        spork~ bass2(25::ms, 5::second, 1600::ms);
         spork~ rateASR(0::ms, 5400::ms, 2400::ms, rateTargets[i], false);
 
         15::second => now;
     }
 }
 
-fun void bass(int firstFloaty) {
-    0 => int counter;
-
+fun void bassSection1() {
     6 => playerScale.target;
     1::ms => playerScale.duration;
     playerScale.keyOn();
+    
+    -5 => playerPeak.target;
+    1::ms => playerPeak.duration;
+    playerPeak.keyOn();
+    
 
+    bass(false, -5, -0.5);
+}
+
+fun void bassSection2() {
+    6 => playerScale.target;
+    1::ms => playerScale.duration;
+    playerScale.keyOn();
+    
+    0 => playerPeak.target;
+    1::ms => playerPeak.duration;
+    playerPeak.keyOn();
+    
+
+    bass(true, 0, 1);
+  
+}
+
+fun void bass(int firstFloaty, float peakMin, float peakMax) {
+    0 => int counter;
 
     while (counter < 4) {
         Math.randomf() => float chance;
         <<< "chance", chance >>>;
 
+        1 => chance;
         if (chance > 0.4) {
             <<< "bass", counter >>>;
             spork~ bass2(25::ms, 3::second, 1200::ms);
 
             Math.randomf() => float chance;
-            0 => chance;
 
             // scale chance of activating floaties by filter cutoff
             float floatChance;
@@ -395,17 +428,18 @@ fun void bass(int firstFloaty) {
             }
 
             if (chance < floatChance || firstFloaty) {
-                spork~ launchFloaties();
+                spork~ launchFloaties(peakMin, peakMax);
             }
 
             false => int negate;
             spork~ rateASR(0::ms, 5400::ms, 2400::ms, 1, negate);
 
             0.3 => float blendVal;
-            2800::ms => dur blendRelease;
+            7000::ms => dur blendRelease;
 
             // don't want to adjust blend while things the fade in is happening
-            spork~ blendASR(1600::ms, 4::second, blendRelease, blendVal);
+            // spork~ blendASR(1600::ms, 4::second, blendRelease, blendVal);
+            spork~ blendASR(2000::ms, (3000-2000)::ms, blendRelease, blendVal);
 
             15::second => now;
         } else {
@@ -419,7 +453,7 @@ fun void bass(int firstFloaty) {
             // scale chance of activating floaties by filter cutoff
             scaleCutoff(0.75, 1) => float floatChance;
             if (Math.randomf() < floatChance) {
-                spork~ launchFloaties();
+                spork~ launchFloaties(peakMin, peakMax);
             }
 
             20::second => now;
@@ -584,17 +618,30 @@ fun void rateASR(dur atk, dur sustain, dur release, float rate, int negate) {
 }
 
 fun void blendASR(dur atk, dur sustain, dur release, float gain) {
-    gain => playerBlend.target;
+    4.0 / 5 => float ratio;
+    gain * ratio => playerBlend.target;
     atk => playerBlend.duration;
-    
+
     playerBlend.keyOn();
+
+    atk => now;
+
+    gain => playerBlend.target;
+    sustain / 2 => playerBlend.duration;
+    playerBlend.keyOn();
+
+    sustain / 2 => now;
     
-    atk + sustain => now;
+    gain * ratio => playerBlend.target;
+    sustain / 2 => playerBlend.duration;
+    playerBlend.keyOn();
+
+    sustain / 2 => now;
     
     0 => playerBlend.target;
     release => playerBlend.duration;
-    
     playerBlend.keyOn();
+    
     release => now;
 }
 
@@ -605,12 +652,7 @@ fun void fadeIn(dur d) {
     d => now;
 }
  
-fun void launchFloaties() {
-    // two lisas for spatialization
-    load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties1;
-    load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties2;
-    
-
+fun void launchFloaties(float peakMin, float peakMax) {
     // Need for stereo reverb
     NRev rl => dac;
     NRev rr => dac;
@@ -658,7 +700,7 @@ fun void launchFloaties() {
     Math.random2(min, max) => int count;
     <<< "floaties", count, min, max >>>;
     
-    spork~ setEdge(fakeGain);
+    spork~ setEdge(fakeGain, peakMin, peakMax);
 
     for (0 => int i; i < count; i++ ) {
         
@@ -681,7 +723,7 @@ fun void launchFloaties() {
 
 }
 
-fun void setEdge(Gain input) {
+fun void setEdge(Gain input, float peakMin, float peakMax) {
     input => FFT fft =^ RMS rms => blackhole;
     // set parameters
     (framerate / samp) $ int => fft.size;
@@ -699,7 +741,7 @@ fun void setEdge(Gain input) {
         blob.fval(0) => float peak;
         
         
-        scale(peak, 0, 0.001, 0, 1) => float scaledPeak => playerPeak.target;
+        scale(peak, 0, 0.001, peakMin, peakMax) => float scaledPeak => playerPeak.target;
         // <<< "peak", peak, scaledPeak >>>;
         6::framerate => playerPeak.duration;
         playerScale.keyOn();
