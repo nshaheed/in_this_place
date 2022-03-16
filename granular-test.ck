@@ -214,7 +214,7 @@ spork~ fadeIn(10::second);
 // bass2();
 
 
-Bright b1 => LPF f => Pan2 p => r => dac;;
+Bright b1 => ADSR e1 => LPF f => Pan2 p => r => dac;;
 // NRev r => dac;
 Bright b2 => ADSR e2 => f;
 Bright b3 => ADSR e3 => f;
@@ -237,6 +237,7 @@ f.set(500, 1.5);
 -0.25 => b2.rate;
 -1.0 => b3.rate;
 
+e1.set(5::second, 0::ms, 1, 5::second);
 e2.set(20::ms, 8::ms, 0.9, 1::second);
 e3.set(10::second, 8::ms, 0.9, 1::second);
 
@@ -246,38 +247,14 @@ spork~ watchFilterCutoff();
 spork~ controlCutoff(f);
 
 // the score - all time advances should be handled here
-/*
+e1.keyOn();
 20::second => now;
 introBass();
 bassSection1();
 bassTransition();
-*/
 e2.keyOn();
 e3.keyOn();
 bassSection2();
-
-
-/*
-
-while(true) {
-    for (0 => int i; i < 50; i++) {
-        74 * i + 50 => b1.minDur;
-        74 * i + 50 => b2.minDur;
-        74 * i + 1000 => f.freq;
-        // 0.02 * i => setBlend;
-        150::ms => now;
-    }
-    for (50 => int i; i > 0; i--) {
-        74 * i + 50 => b1.minDur;
-        74 * i + 50 => b2.minDur;
-        74 * i + 1000 => f.freq;
-        // 0.02 * i => setBlend;
-        150::ms => now;
-    }
-
-}
-*/
-
 
 1::week => now;
 
