@@ -251,11 +251,12 @@ spork~ controlCutoff(f);
 20::second => now;
 introBass();
 bassSection1();
-bass2Cresc(25::ms, 5::second, 8600::ms);
+bassTransition();
 e2.keyOn();
 bassSection2();
 
 
+/*
 
 while(true) {
     for (0 => int i; i < 50; i++) {
@@ -274,7 +275,7 @@ while(true) {
     }
 
 }
-
+*/
 
 
 1::week => now;
@@ -405,6 +406,34 @@ fun void bassSection2() {
   
 }
 
+fun void bassTransition() {
+    <<< "transition bass" >>>;
+    
+    // set video player state
+    6 => playerScale.target;
+    1::ms => playerScale.duration;
+    playerScale.keyOn();
+    
+    -5 => playerPeak.target;
+    1::ms => playerPeak.duration;
+    playerPeak.keyOn();
+
+    // play audio/video
+    spork~ bassTransitionVideo();
+    bass2Cresc(25::ms, 5::second, 6500::ms);
+}
+
+fun void bassTransitionVideo() {
+    spork~ rateASR(0::ms, 5::second, 2000::ms, 1, false);
+    spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
+    
+    1.6::second + (5-1.6)::second => now;
+    0 => playerPeak.target;
+    20::second => playerPeak.duration;
+    playerPeak.keyOn();
+
+}
+
 fun void bass(int firstFloaty, float peakMin, float peakMax) {
     0 => int counter;
 
@@ -415,7 +444,7 @@ fun void bass(int firstFloaty, float peakMin, float peakMax) {
         1 => chance;
         if (chance > 0.4) {
             <<< "bass", counter >>>;
-            spork~ bass2(25::ms, 3::second, 1200::ms);
+            spork~ bass2(25::ms, 4::second, 1400::ms);
 
             Math.randomf() => float chance;
 
@@ -439,7 +468,7 @@ fun void bass(int firstFloaty, float peakMin, float peakMax) {
 
             // don't want to adjust blend while things the fade in is happening
             // spork~ blendASR(1600::ms, 4::second, blendRelease, blendVal);
-            spork~ blendASR(2000::ms, (3000-2000)::ms, blendRelease, blendVal);
+            spork~ blendASR(2000::ms, (4000-2000)::ms, blendRelease, blendVal);
 
             15::second => now;
         } else {
@@ -481,7 +510,7 @@ fun void bass2(dur atk, dur sustain, dur release) {
     
     <<< "bass2:", t1.harmonics(), "harmonics" >>>;
     
-    1.1 => g.gain;
+    2 => g.gain;
     
     0.4 => float gainScale;
     1 * gainScale => t1.gain;
@@ -532,7 +561,7 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     
     <<< "bass2cresc:", t1.harmonics(), "harmonics" >>>;
     
-    1.1 => g.gain;
+    2.2 => g.gain;
     
     0.4 => float gainScale;
     1 * gainScale => t1.gain;
@@ -544,7 +573,7 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     36 => Std.mtof => t1.freq;
     48.05 => Std.mtof => t2.freq;
     60.05 => Std.mtof => t3.freq;
-    67 => Std.mtof => t4.freq;
+    67.05 => Std.mtof => t4.freq;
     
     e.set(atk, 100::ms, 0.5, release);
     
@@ -552,37 +581,42 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     atk + 100::ms => now;
     
     1::second => now;
-    /*
-    e2.keyOn();    
-    (sustain-1::second)/2 => now;
-    
-    e2.keyOff();
-    (sustain-1::second)/2 => now;
-    
-    e.keyOff();
-    release => now;
-    2::second => now;
-    */
     0.5 => e2.target;
     e2.keyOn();    
     sustain => now;
     e.keyOff();
 
-    release => e3.duration;
+    0.7 => float ratio;
+    release * ratio => e2.duration => e3.duration;
     <<< "keyoff" >>>;
     //e2.keyOn();
     sustain =>now;
-    2 => e2.target;
+    0.5 => e2.target => e3.target;
     e2.keyOn();
     e3.keyOn();
-    release => now;
+    release * ratio => now;
+    
+    2 => e3.target;
+    release * (1-ratio) => e2.duration => e3.duration;
+    e2.keyOn();
+    e3.keyOn();
+    release * (1-ratio) => now;
+    
     // 2::second => now;
     
-    50::ms => e2.duration;
-    release * (2.0/3) => e3.duration;
+    0.15::second => now;
+    
+    2::ms => e2.duration;
+    2::ms => e3.duration;
+    0.25 => e3.target;
+    
     e2.keyOff();
+    e3.keyOn();
+    2::ms => now;
+    
     e3.keyOff();
-    50::ms => now;
+    release * 1.75 => e3.duration;
+
 }
 
 
