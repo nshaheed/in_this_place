@@ -238,7 +238,7 @@ f.set(500, 1.5);
 -1.0 => b3.rate;
 
 e1.set(5::second, 0::ms, 1, 5::second);
-e2.set(20::ms, 8::ms, 0.9, 1::second);
+e2.set(20::ms, 8::ms, 0.9, 20::second);
 e3.set(10::second, 8::ms, 0.9, 1::second);
 
 spork~ controlCutoffBounds();
@@ -255,6 +255,7 @@ bassTransition();
 e2.keyOn();
 e3.keyOn();
 bassSection2();
+outro();
 
 1::week => now;
 
@@ -600,6 +601,16 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
 
 }
 
+// controlling the outro
+fun void outro() {
+    <<< "outro" >>>;
+    e1.keyOff();
+    e2.keyOff();
+    
+    
+    45::second => now;
+    e3.keyOff();
+}
 
 fun void watchFilterCutoff() {
     while(true) {
