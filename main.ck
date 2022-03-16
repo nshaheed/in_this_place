@@ -180,25 +180,95 @@ e3.set(10::second, 8::ms, 0.9, 1::second);
 
 spork~ controlCutoffBounds();
 spork~ brightPan();
-spork~ watchFilterCutoff();
-spork~ controlCutoff(f);
+
+//spork~ watchFilterCutoff();
+//spork~ controlCutoff(f);
+
+CutoffEvent cutoffEvent;
+spork~ cutoffDriver(cutoffEvent);
+spork~ cutoffScore(cutoffEvent);
 
 // the score - all time advances should be handled here
 e1.keyOn();
 
-/*
+
 20::second => now;
+/*
 introBass();
 bassSection1();
 bassTransition();
-*/
+
 e2.keyOn();
 e3.keyOn();
 // bassSection2();
 10::second => now;
 outro();
-
+*/
 1::week => now;
+
+class CutoffEvent extends Event {
+    float freq;
+    dur duration;
+    dur hold;
+    
+    fun void set(float f, dur d, dur h) {
+        f => freq;
+        d => duration;
+        h => hold;
+    }
+}
+
+fun void cutoffDriver(CutoffEvent event) {
+    Envelope e => blackhole;
+
+    while(true) {
+        event => now;
+        
+        event.duration => e.duration;
+        e.keyOn();
+        
+        while (e.value() < e.target() || f.freq() < event.freq) {
+            scale(e.value(), 0, 1, 500, event.freq) => f.freq;
+            10::ms => now;
+        }
+        
+        <<< "finished ramp up", f.freq() >>>; 
+        event.hold => now;
+        
+        e.keyOff();
+        
+        while (e.value() > 0.0 || f.freq() > 500.0) {
+            scale(e.value(), 0, 1, 500, event.freq) => f.freq;
+            10::ms => now;
+        }
+        <<< "finished ramp down", f.freq() >>>; 
+    }
+    
+}
+
+fun void cutoffScore(CutoffEvent event) {
+    /*
+    5::second => now;
+    event.set(8000, 5::second, 5::second);
+    event.signal();
+    20::second => now;
+    
+    event.set(12000, 5::second, 5::second);
+    event.signal();
+    20::second => now;
+    
+    event.set(16000, 5::second, 5::second);
+    event.signal();
+    20::second => now;
+    
+    */
+    
+    event.set(20000, 5::second, 500::second);
+    event.signal();
+    20::second => now;
+
+
+}
 
 fun void controlCutoff(LPF filter) {
     Envelope e => blackhole;
