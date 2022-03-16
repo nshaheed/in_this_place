@@ -105,69 +105,6 @@ class Bright extends Chugraph {
     }
 }
 
-class Shepherd extends Chugraph {
-    // mean for normal intensity curve
-    -1.0 => float MU;
-    // standard deviation for normal intensity curve
-    2 => float SIGMA;
-    // normalize to 1.0 at x==MU
-    1 / Math.gauss(MU, MU, SIGMA) => float SCALE;
-    // increment per unit time (use negative for descending)
-    0.000001 => float INC;
-    // 0.00008 => float INC;
-    // unit time (change interval)
-    // 1::ms => dur T;
-    framerate / 4 => dur T;
-
-    // starting pitches (in MIDI note numbers, octaves apart)
-    [ -3.0, -2.0, -1.0, 0] 
-    // [-1.0] 
-    @=> float pitches[];
-    // number of tones
-    pitches.size() => int N;
-    // bank of tones
-    Bright tones[N];
-    // overall gain
-    Gain internalGain => LPF f => outlet; 
-    1.0/N => internalGain.gain;
-    f.set(5000, 1);
-    
-    
-    // connect to dac
-    for( int i; i < N; i++ ) { tones[i] => internalGain; }
-    
-    for ( int i; i < N; i++ ) { -0 +=> pitches[i]; }
-
-    // infinite time loop
-    spork~ loop();
-    fun void loop() {
-        while( true ) {
-                for( int i; i < N; i++ )
-                {
-                    // set frequency from pitch
-                    Math.pow(2, pitches[i]) => float rate => tones[i].rate;
-                    
-                    
-                    // compute loundess for each tone
-                    Math.gauss( pitches[i], MU, SIGMA ) * SCALE => float intensity;
-                    
-                    // <<< i, rate, intensity >>>;
-                    // map intensity to amplitude
-                    intensity*96 => Math.dbtorms => tones[i].gain;
-                    // increment pitch
-                    INC +=> pitches[i];
-                    // wrap (for positive INC)
-                    if( pitches[i] > 1.0 ) -3.0 => pitches[i];
-                    // wrap (for negative INC)
-                    else if( pitches[i] < -3.0 ) 1.0 => pitches[i];
-                }
-                
-                // advance time
-                T => now;
-            }
-        }
-}
-
 [-1.0, -2.0, -0.5] @=> float rates[];
 
 0.25::ms => dur offset;
