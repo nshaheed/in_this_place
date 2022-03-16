@@ -5,4 +5,4 @@ Machine.add(me.dir() + "/VideoController.ck");
 Machine.add(me.dir() + "/CREnv.ck");
 
 // Add files that do things
-// Machine.add(me.dir() + "/granular-test.ck");
+// Machine.add(me.dir() + "/main.ck");

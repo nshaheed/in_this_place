@@ -1,9 +1,9 @@
 {
 	"name" : "video_player",
 	"version" : 1,
-	"creationdate" : -565945487,
-	"modificationdate" : 3730205888,
-	"viewrect" : [ 1385.0, 254.0, 300.0, 500.0 ],
+	"creationdate" : -565945608,
+	"modificationdate" : 3730262312,
+	"viewrect" : [ 2169.0, 287.0, 300.0, 500.0 ],
 	"autoorganize" : 1,
 	"hideprojectwindow" : 0,
 	"showdependencies" : 1,
