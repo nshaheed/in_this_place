@@ -168,12 +168,6 @@ class Shepherd extends Chugraph {
         }
 }
 
-/*
-Shepherd s => dac;
-0 => s.INC;
-*/
-
-// [-0.5, 0.75, -1, 0.6] 
 [-1.0, -2.0, -0.5] @=> float rates[];
 
 0.25::ms => dur offset;
@@ -222,7 +216,9 @@ spork~ fadeIn(10::second);
 
 Bright b1 => LPF f => Pan2 p => r => dac;;
 // NRev r => dac;
-Bright b2 => ADSR e2 => f => p;
+Bright b2 => ADSR e2 => f;
+Bright b3 => ADSR e3 => f;
+
 
 /*
 p.left => NRev r1 => dac.left;
@@ -239,8 +235,10 @@ f.set(500, 1.5);
 
 -0.5 => b1.rate;
 -0.25 => b2.rate;
+-1.0 => b3.rate;
 
 e2.set(20::ms, 8::ms, 0.9, 1::second);
+e3.set(10::second, 8::ms, 0.9, 1::second);
 
 spork~ controlCutoffBounds();
 spork~ brightPan();
@@ -248,11 +246,14 @@ spork~ watchFilterCutoff();
 spork~ controlCutoff(f);
 
 // the score - all time advances should be handled here
+/*
 20::second => now;
 introBass();
 bassSection1();
 bassTransition();
+*/
 e2.keyOn();
+e3.keyOn();
 bassSection2();
 
 
@@ -326,12 +327,15 @@ fun void brightPan() {
     }
 }
 
+// adjust b3's gain depending on cutoff freq.
+fun void controlB3() {
+    while (true) {
+        scaleCutoff(0.75, 2) => b3.gain;
+        5::ms => now;
+    }
+}
 // the score for controlling cutoff bounds.
 fun void controlCutoffBounds() {
-    /*
-    20000 => filterCutoffMax;
-    20000 => f.freq;
-    */
     
     5::second => now;
     
