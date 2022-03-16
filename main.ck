@@ -248,13 +248,17 @@ spork~ controlCutoff(f);
 
 // the score - all time advances should be handled here
 e1.keyOn();
+
+/*
 20::second => now;
 introBass();
 bassSection1();
 bassTransition();
+*/
 e2.keyOn();
 e3.keyOn();
-bassSection2();
+// bassSection2();
+10::second => now;
 outro();
 
 1::week => now;
@@ -604,12 +608,42 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
 // controlling the outro
 fun void outro() {
     <<< "outro" >>>;
+
+    6 => playerScale.target;
+    1::ms => playerScale.duration;
+    playerScale.keyOn();
+
+    0 => playerPeak.target;
+    1::ms => playerPeak.duration;
+    playerPeak.keyOn();
+
+    1::ms => now;
+
     e1.keyOff();
     e2.keyOff();
-    
-    
+
+    -2 => playerPeak.target;
+    10::second => playerPeak.duration;
+    playerPeak.keyOn();
+
+    0 => playerScale.target;
+    10::second => playerScale.duration;
+    playerScale.keyOn();
+
+    15::second => now;
+
+    -2 => playerPeak.target;
+    10::second => playerPeak.duration;
+    playerPeak.keyOn();
+
+    -6 => playerPeak.target;
+    10::second => playerPeak.duration;
+    playerPeak.keyOn();
+
+
     45::second => now;
     e3.keyOff();
+    fadeOut(2::second);
 }
 
 fun void watchFilterCutoff() {
@@ -675,6 +709,12 @@ fun void fadeIn(dur d) {
     d => playerFade.duration;
     1 => playerFade.target;           
     playerFade.keyOn();
+    d => now;
+}
+
+fun void fadeOut(dur d) {
+    d => playerFade.duration;
+    playerFade.keyOff();
     d => now;
 }
  
