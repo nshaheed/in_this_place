@@ -290,7 +290,7 @@ fun void cutoffScore(CutoffEvent event, BeatEvent s1) {
     
     false => keepGoing;
     moveForward => now;
-    
+
     <<<"entering transition" >>>;
     event.set(5000, 20::second, 10::second);
     event.signal();
@@ -752,12 +752,12 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     
     e2.keyOff();
     e3.keyOff();
-    75::ms => now;
+    50::ms => now;
     
     1.25 => e3.target;
-    25::ms => e3.duration;
+    6::ms => e3.duration;
     e3.keyOn();
-    25::ms => now;
+    6::ms => now;
     
     /*
     0.25 => e3.target;
