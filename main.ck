@@ -165,7 +165,7 @@ p.right => NRev r2 => dac.right;
 */
 
 f.set(500, 1.5);
-0.25 => f.gain;
+0.5 => f.gain;
 
 // 0 => b2.gain; // phase in b2 at some point
 1 => b2.gain;
@@ -178,32 +178,34 @@ e1.set(5::second, 0::ms, 1, 5::second);
 e2.set(20::ms, 8::ms, 0.9, 20::second);
 e3.set(10::second, 8::ms, 0.9, 1::second);
 
-spork~ controlCutoffBounds();
+// spork~ controlCutoffBounds();
 spork~ brightPan();
 
 //spork~ watchFilterCutoff();
 //spork~ controlCutoff(f);
 
 CutoffEvent cutoffEvent;
+BeatEvent s1Event;
+BeatEvent s2Event;
+false => int keepGoing;
+Event moveForward;
+Event startBass;
+Event transitionEvent;
 spork~ cutoffDriver(cutoffEvent);
-spork~ cutoffScore(cutoffEvent);
+spork~ cutoffScore(cutoffEvent, s1Event);
 
 // the score - all time advances should be handled here
-e1.keyOn();
 
-
-20::second => now;
-/*
 introBass();
 bassSection1();
 bassTransition();
 
 e2.keyOn();
 e3.keyOn();
-// bassSection2();
-10::second => now;
+bassSection2();
+// 10::second => now;
 outro();
-*/
+
 1::week => now;
 
 class CutoffEvent extends Event {
@@ -218,12 +220,28 @@ class CutoffEvent extends Event {
     }
 }
 
+class BeatEvent extends Event {
+    float freq;
+    dur duration;
+    dur hold;
+    int beatCount;
+    false => int finished;
+    
+    fun void set(float f, dur d, dur h) {
+        f => freq;
+        d => duration;
+        h => hold;
+        0 => beatCount;
+    }
+}
+
 fun void cutoffDriver(CutoffEvent event) {
     Envelope e => blackhole;
 
     while(true) {
         event => now;
         
+        <<< "start ramp up", f.freq() >>>;
         event.duration => e.duration;
         e.keyOn();
         
@@ -246,11 +264,58 @@ fun void cutoffDriver(CutoffEvent event) {
     
 }
 
-fun void cutoffScore(CutoffEvent event) {
-    /*
+fun void cutoffScore(CutoffEvent event, BeatEvent s1) {
+    // INTRO: 50s
     5::second => now;
-    event.set(8000, 5::second, 5::second);
+    event.set(1000, 17.5::second, 5::second);
     event.signal();
+    
+    moveForward => now;
+    
+    // Section 1 (dynamic)
+    <<< "section 1 cutoffScore" >>>;
+    true => keepGoing;
+    startBass.signal();
+
+    event.set(2000, 30::second, 5::second);
+    event.signal();
+    
+    70::second => now;
+    
+    <<< "second s1 wave" >>>;
+    event.set(3000, 30::second, 5::second);
+    event.signal();
+    
+    70::second => now;
+    
+    false => keepGoing;
+    moveForward => now;
+    
+    <<<"entering transition" >>>;
+    event.set(5000, 20::second, 10::second);
+    event.signal();
+    
+    moveForward => now;
+    
+    <<< "second bass" >>>;
+    true => keepGoing;
+    startBass.signal();
+    33::second => now;
+    
+    <<<"trigger 8000 ramp">>>;
+    event.set(8000, 45::second, 10::second);
+    event.signal();
+    110::second => now;
+    
+    event.set(4000, 15::second, 5::second);
+    event.signal();
+    40::second => now;
+    
+    false => keepGoing;
+    moveForward => now;
+    
+
+    /*
     20::second => now;
     
     event.set(12000, 5::second, 5::second);
@@ -261,11 +326,12 @@ fun void cutoffScore(CutoffEvent event) {
     event.signal();
     20::second => now;
     
-    */
     
     event.set(20000, 5::second, 500::second);
     event.signal();
     20::second => now;
+    
+    */
 
 
 }
@@ -351,6 +417,9 @@ fun float scale(float in, float inMin, float inMax, float outMin, float outMax) 
 }
 
 fun void introBass() {
+    e1.keyOn();
+    20::second => now;
+
     [-2.0, -5] @=> float peakTargets[];
     [0.0, 6] @=> float scaleTargets[];
     [2.0, 1] @=> float rateTargets[];
@@ -370,9 +439,12 @@ fun void introBass() {
 
         15::second => now;
     }
+    
+    moveForward.signal();
 }
 
 fun void bassSection1() {
+    <<< "enter bassSection1" >>>;
     6 => playerScale.target;
     1::ms => playerScale.duration;
     playerScale.keyOn();
@@ -382,7 +454,10 @@ fun void bassSection1() {
     playerPeak.keyOn();
     
 
-    bass(false, -5, -0.5);
+    bass(false, -5, -1);
+    
+    moveForward.signal();
+    <<< "exit bassSection1" >>>;
 }
 
 fun void bassSection2() {
@@ -414,6 +489,8 @@ fun void bassTransition() {
     // play audio/video
     spork~ bassTransitionVideo();
     bass2Cresc(25::ms, 5::second, 6500::ms);
+    
+    moveForward.signal();
 }
 
 fun void bassTransitionVideo() {
@@ -430,11 +507,11 @@ fun void bassTransitionVideo() {
 fun void bass(int firstFloaty, float peakMin, float peakMax) {
     0 => int counter;
 
-    while (counter < 4) {
+    startBass => now;
+    while (keepGoing) {
         Math.randomf() => float chance;
         <<< "chance", chance >>>;
 
-        1 => chance;
         if (chance > 0.4) {
             <<< "bass", counter >>>;
             spork~ bass2(25::ms, 4::second, 1400::ms);
@@ -443,10 +520,10 @@ fun void bass(int firstFloaty, float peakMin, float peakMax) {
 
             // scale chance of activating floaties by filter cutoff
             float floatChance;
-            if (f.freq() < 2000) {
+            if (f.freq() <= 700) {
                 0 => floatChance;
             } else {
-                scale(f.freq(), 2000, 20000, 0.2, 0.9) => floatChance;
+                scale(f.freq(), 700, 8000, 0.2, 0.9) => floatChance;
             }
 
             if (chance < floatChance || firstFloaty) {
@@ -580,20 +657,20 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     e.keyOff();
 
     0.7 => float ratio;
-    release * ratio => e2.duration => e3.duration;
+    ratio::release => e2.duration => e3.duration;
     <<< "keyoff" >>>;
     //e2.keyOn();
     sustain =>now;
     0.5 => e2.target => e3.target;
     e2.keyOn();
     e3.keyOn();
-    release * ratio => now;
+    ratio::release=> now;
     
     2 => e3.target;
-    release * (1-ratio) => e2.duration => e3.duration;
+    (1-ratio)::release => e2.duration => e3.duration;
     e2.keyOn();
     e3.keyOn();
-    release * (1-ratio) => now;
+    (1-ratio)::release => now;
     
     // 2::second => now;
     
@@ -608,7 +685,7 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     2::ms => now;
     
     e3.keyOff();
-    release * 1.75 => e3.duration;
+    1.75::release => e3.duration;
 
 }
 
@@ -648,7 +725,7 @@ fun void outro() {
     playerPeak.keyOn();
 
 
-    45::second => now;
+    30::second => now;
     e3.keyOff();
     fadeOut(2::second);
 }
@@ -837,7 +914,7 @@ fun float getPeak(Gain input, dur d) {
     
 // this way I can keep the frequency bounds in one spot.
 fun float scaleCutoff(float min, float max) {
-    return scale(f.freq(), 500, 20000, min, max);
+    return scale(f.freq(), 500, 8000, min, max);
 }
 
 // sporkee: a grain!
