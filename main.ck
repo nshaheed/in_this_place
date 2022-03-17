@@ -136,8 +136,8 @@ load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floatie
 // Set up gverb
 GVerb r => dac;
 
-50 => r.roomsize;
-0.5::second => r.revtime;
+200 => r.roomsize;
+4::second => r.revtime;
 0.3 => r.dry;
 0.1 => r.early;
 0.1 => r.tail;
@@ -176,7 +176,7 @@ f.set(500, 1.5);
 
 e1.set(5::second, 0::ms, 1, 5::second);
 e2.set(20::ms, 8::ms, 0.9, 20::second);
-e3.set(10::second, 8::ms, 0.9, 1::second);
+e3.set(10::second, 8::ms, 0.9, 0.5::second);
 
 // spork~ controlCutoffBounds();
 spork~ brightPan();
@@ -526,7 +526,10 @@ fun void bass(int firstFloaty, float peakMin, float peakMax) {
                 scale(f.freq(), 700, 8000, 0.2, 0.9) => floatChance;
             }
 
-            if (chance < floatChance || firstFloaty) {
+            if (firstFloaty) {
+                spork~ launchFloatiesFixed(peakMin, peakMax);
+            }
+            else if (chance < floatChance) {
                 spork~ launchFloaties(peakMin, peakMax);
             }
 
@@ -567,8 +570,8 @@ fun void bass2(dur atk, dur sustain, dur release) {
     Blit t3 => Envelope e2 => e;
     // 0.1 => r.mix;
     
-    50 => r.roomsize;
-    0.5::second => r.revtime;
+    100 => r.roomsize;
+    4::second => r.revtime;
     0.3 => r.dry;
     0.1 => r.early;
     0.1 => r.tail;
@@ -681,11 +684,22 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     0.25 => e3.target;
     
     e2.keyOff();
-    e3.keyOn();
-    2::ms => now;
-    
     e3.keyOff();
+    75::ms => now;
+    
+    1.25 => e3.target;
+    25::ms => e3.duration;
+    e3.keyOn();
+    25::ms => now;
+    
+    /*
+    0.25 => e3.target;
+    100::ms => e3.duration;
+    e3.keyOn();
+    100::ms => now;
+    */
     1.75::release => e3.duration;
+    e3.keyOff();
 
 }
 
@@ -872,6 +886,78 @@ fun void launchFloaties(float peakMin, float peakMax) {
     5::second => now;
 
 }
+
+fun void launchFloatiesFixed(float peakMin, float peakMax) {
+    // Need for stereo reverb
+    NRev rl => dac;
+    NRev rr => dac;
+
+    0.25 => rl.mix => rr.mix;
+
+
+    floaties1 => Pan2 p1; // => r;
+    floaties2 => Pan2 p2; // => r;
+    
+    rl => Gain fakeGain => blackhole;
+    rr => fakeGain;
+
+
+    p1.left => rl;
+    p2.left => rl;
+    p1.right => rr;
+    p2.right => rr;
+
+
+    -0.5 => p1.pan;
+    0.5 => p2.pan;
+
+    0.75 => floaties1.gain => floaties2.gain;
+
+    // scale floaty range with the filter cutoff
+    // scaleCutoff(2,6) => float minFloat;
+    // scaleCutoff(3,10) => float maxFloat;
+    
+    // random value between 0 and 1 to scale to current range
+    // Math.randomf() => float amount;
+    
+    // 30 => float minFloat;
+    // 40 => float maxFloat;
+    
+    scaleCutoff(0,1) => float scaler;
+    Math.pow(scaler, 4) => scaler; // make scaling exponential
+    scale(scaler, 0, 1, 2, 30) => float minFloat;
+    scale(scaler, 0, 1, 3, 40) => float maxFloat;
+
+
+    Math.round(minFloat) $ int => int min;
+    Math.round(maxFloat) $ int => int max;
+
+    Math.random2(14, 14) => int count;
+    <<< "floaties", count, min, max >>>;
+    
+    spork~ setEdge(fakeGain, peakMin, peakMax);
+
+    for (0 => int i; i < count; i++ ) {
+        
+        [0.5, 1.0, 2.0] @=> rates;
+        rates[Math.random2(0,rates.cap()-1)] => float rate;
+        
+        if(Math.random2f(0,1) > 0.5) {
+            -1 *=> rate;
+        }
+        
+        if (i % 2 == 0) {
+            spork~ getgrain2(floaties1, 3::second, 1000::ms, 1000::ms, 1 * rate);
+        } else {
+            spork~ getgrain2(floaties2, 3::second, 1000::ms, 1000::ms, 1 * rate);
+        }
+        
+        6::framerate * Std.fabs(rate) => now;
+    }
+    5::second => now;
+
+}
+
 
 fun void setEdge(Gain input, float peakMin, float peakMax) {
     input => FFT fft =^ RMS rms => blackhole;
