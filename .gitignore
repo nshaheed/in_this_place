@@ -7,3 +7,5 @@
 *.blend1
 *.mkv
 /scratch/*.asd
+/recordings/
+*~
