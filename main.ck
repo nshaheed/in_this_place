@@ -434,7 +434,7 @@ fun void introBass() {
         scaleTargets[i] => playerScale.target;
         playerScale.keyOn();
         
-        spork~ bass2(25::ms, 5::second, 1600::ms);
+        spork~ bass2harms(25::ms, 5::second, 1600::ms, i+1);
         spork~ rateASR(0::ms, 5400::ms, 2400::ms, rateTargets[i], false);
 
         15::second => now;
@@ -611,6 +611,73 @@ fun void bass2(dur atk, dur sustain, dur release) {
     release => now;
     2::second => now;
 }
+
+// this version of bass2 controls the number of harmonics
+// being played (from top down, i.e. a harm value of 1 
+// will include the t3 only).
+fun void bass2harms(dur atk, dur sustain, dur release, int harms) {
+    Blit t1 => ADSR e => Gain g => GVerb r => dac;
+    Blit t2 => e;
+    Blit t3 => Envelope e2 => e;
+    // 0.1 => r.mix;
+    
+    100 => r.roomsize;
+    4::second => r.revtime;
+    0.3 => r.dry;
+    0.1 => r.early;
+    0.1 => r.tail;
+    
+    Math.random2(2,4) => t1.harmonics => t2.harmonics;
+    Math.random2(3,5) => t3.harmonics;
+    
+    (sustain-1::second)/2 => e2.duration;
+    
+    <<< "bass2:", t1.harmonics(), "harmonics" >>>;
+    
+    2 => g.gain;
+    
+    0.4 => float gainScale;
+    
+    // all ts are off unless harm says they're on.
+    0 => t1.gain => t2.gain => t3.gain;
+    if (harms >= 3) {
+        1 * gainScale => t1.gain;
+    }
+    if (harms >= 2) {
+        0.5 * gainScale => t2.gain;
+        0.25 * gainScale => t3.gain;
+    }
+    if (harms ==1) {
+        0.4 * gainScale => t3.gain;
+    }
+     
+    
+    36 => Std.mtof => t1.freq;
+    48.05 => Std.mtof => t2.freq;
+    60.05 => Std.mtof => t3.freq;
+    
+    e.set(atk, 100::ms, 0.5, release);
+    
+    e.keyOn();
+    atk + 100::ms => now;
+    
+    1::second => now;
+    e2.keyOn();
+    
+    if (harms == 1) {
+        sustain => now;
+    } else {
+        (sustain-1::second)/2 => now;
+    }
+    
+    e2.keyOff();
+    (sustain-1::second)/2 => now;
+    
+    e.keyOff();
+    release => now;
+    2::second => now;
+}
+
 
 fun void bass2Cresc(dur atk, dur sustain, dur release) {
     Blit t1 => ADSR e => Gain g => GVerb r => dac;
