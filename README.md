@@ -11,7 +11,7 @@ To run this code you need to install:
 
 ## How to run
 
-- Download this zip file (the video and audio files are too big for git to handle)
+- Download [this zip file](https://drive.google.com/file/d/1sfxGi8xjMUjZPsS7sUFou-24hcFYhC6N/view?usp=sharing) (the video and audio files are too big for git to handle)
 - Extract it to some directory
 - Open ./video_player/video_player.maxproj
 - From the project menu, open the video_player patch.
