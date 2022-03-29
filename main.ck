@@ -1,18 +1,4 @@
-//-----------------------------------------------------------------------------
-// name: LiSa-load.ck
-// desc: function for loading an audio file into LiSa
-//
-// author: Dan Trueman, original example (2007): was LiSa-SndBuf.ck
-//         Ge Wang, modified example (2021): rolled function, added twilight
-//                  sound (see twilight-granular-kb-interp.ck for more info)
-//                  and bi-directional loop
-//-----------------------------------------------------------------------------
-// this example shows how to open a soundfile and use it in LiSa. someday LiSa
-// may be able to open soundfiles directly, but don't hold your breath. 
-//
-// note that unlike SndBuf, LiSa wants a dur (not an int) to specify the index
-// of the sample location
-//-----------------------------------------------------------------------------
+// "In this place." main score file
 
 (1.0 / 30.0)::second => dur framerate; // seconds per frame
 
