@@ -17,5 +17,4 @@ public class Player {
     peak.set("/video/player/peak", -6.5, framerate);
     scale.set("/video/player/scale", 0, framerate);
     frame.set("/video/player/frame", 0);
-
 }

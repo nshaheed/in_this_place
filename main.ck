@@ -1,26 +1,13 @@
 // "In this place." main score file
 
-700 => float filterCutoffMax; // set the filter cutoff max freq that the sweep will use
-// 20000 => filterCutoffMax;
-
-
-// each one of these needs to scale the playback rate chagne based off of its base rate
-// otherwise they go out of tune, which is actualy kinda cool. Maybe this could be an arc?
-// progression: some amount of time with proper shepherd, then start moving out of sync.
 class Bright extends Chugraph {
     1 => float rate;
-    // 0 => float speed;
-    // -0.00005 => float speed;
-    -0.0000005 => float speed;
-    // -0.00000005 => float speed;
     
     26::second => dur start;
     28::second => dur end;
 
     load( me.dir() + "concertina1.wav", start, end) @=> LiSa @ lisa;
     lisa => outlet;
-    
-    // 0.05 => r.mix;
 
     0.2 => lisa.gain;
 
@@ -31,7 +18,7 @@ class Bright extends Chugraph {
     
     5::ms => dur offset;
     
-    209 => float minDur;
+    209 => float minGrainDur;
     
     spork~ run();
     
@@ -39,7 +26,6 @@ class Bright extends Chugraph {
     fun void getgrain(dur grainlen, dur rampup, dur rampdown, float rate)
     {
         // get an available voice
-        // lisa[which].getVoice() => int newvoice;
         lisa.getVoice() => int newvoice;
         
         // make sure we got a valid voice   
@@ -66,45 +52,34 @@ class Bright extends Chugraph {
     fun void run() {
         while(true) {
             // new duration
-            Math.random2f(minDur, 5000)::ms => dur newdur;
-            
-            
-            // rates[Math.random2(0, rates.cap()-1)] => newrate;
-            
-           // rateDelta +=> newrate;
-           // 0.5 *=> newrate;
+            Math.random2f(minGrainDur, 5000)::ms => dur newdur;
 
             spork ~ getgrain(newdur, 40::ms, 40::ms, rate);
-            // freq
-            // freqmod.last() * 400. + 800. => s.freq;
-            // advance time
-            
-            // if (offset > 30::ms || offset < 0.5::ms) 1::ms => duration;
             offset => now;
-            // <<< offset / ms >>>;            
-            // -0.00000005 +=> rateDelta;
-            // speed +=> rateDelta;
-            // delta +=> offset;
         }
     }
 }
 
+// ~~~~~~~~ Global Variables ~~~~~~~~
 [-1.0, -2.0, -0.5] @=> float rates[];
+700 => float filterCutoffMax; // set the filter cutoff max freq that the sweep will use
 
-0.25::ms => dur offset;
-0.1::ms => dur delta;
+CutoffEvent cutoffEvent;
+BeatEvent s1Event;
+BeatEvent s2Event;
+false => int keepGoing;
+Event moveForward;
+Event startBass;
+Event transitionEvent;
 
 // init video player controls
 Player player;
-
 
 // two lisas for spatialization
 load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties1;
 load( me.dir() + "concertina1.wav", 25.9::second, 33::second) @=> LiSa @ floaties2;
 
-// 10::second => now;
-
-// Set up gverb
+// ~~~~~~~~ Reverb ~~~~~~~~
 GVerb r => dac;
 
 200 => r.roomsize;
@@ -113,32 +88,15 @@ GVerb r => dac;
 0.1 => r.early;
 0.1 => r.tail;
 
-
-spork~ fadeIn(10::second);
-
-0 => float rateDelta;
-
-// 5::second => now;
-// bass2();
-
+// ~~~~~~~~ Bright/LPF Setup ~~~~~~~~
 
 Bright b1 => ADSR e1 => LPF f => Pan2 p => r => dac;;
-// NRev r => dac;
 Bright b2 => ADSR e2 => f;
 Bright b3 => ADSR e3 => f;
-
-
-/*
-p.left => NRev r1 => dac.left;
-p.right => NRev r2 => dac.right;
-
-0.05 => r.mix => r1.mix => r2.mix;
-*/
 
 f.set(500, 1.5);
 0.5 => f.gain;
 
-// 0 => b2.gain; // phase in b2 at some point
 1 => b2.gain;
 
 -0.5 => b1.rate;
@@ -149,19 +107,14 @@ e1.set(5::second, 0::ms, 1, 5::second);
 e2.set(20::ms, 8::ms, 0.9, 20::second);
 e3.set(10::second, 8::ms, 0.9, 0.5::second);
 
+// ~~~~~~~~ Setup Watchers ~~~~~~~~
 // spork~ controlCutoffBounds();
 spork~ brightPan();
+spork~ fadeIn(10::second);
 
 //spork~ watchFilterCutoff();
 //spork~ controlCutoff(f);
 
-CutoffEvent cutoffEvent;
-BeatEvent s1Event;
-BeatEvent s2Event;
-false => int keepGoing;
-Event moveForward;
-Event startBass;
-Event transitionEvent;
 spork~ cutoffDriver(cutoffEvent);
 spork~ cutoffScore(cutoffEvent, s1Event);
 
@@ -950,16 +903,6 @@ fun void launchFloatiesFixed(float peakMin, float peakMax) {
     0.5 => p2.pan;
 
     0.75 => floaties1.gain => floaties2.gain;
-
-    // scale floaty range with the filter cutoff
-    // scaleCutoff(2,6) => float minFloat;
-    // scaleCutoff(3,10) => float maxFloat;
-    
-    // random value between 0 and 1 to scale to current range
-    // Math.randomf() => float amount;
-    
-    // 30 => float minFloat;
-    // 40 => float maxFloat;
     
     scaleCutoff(0,1) => float scaler;
     Math.pow(scaler, 4) => scaler; // make scaling exponential
@@ -1005,9 +948,6 @@ fun void setEdge(Gain input, float peakMin, float peakMax) {
     Windowing.hann((player.framerate / samp) $ int) => fft.window;
     
     while(true) {
-        // getPeak(input, player.framerate) => float peak;
-        // scale(input.last(), 0, 1, 
-        
         // upchuck: take fft then rms
         rms.upchuck() @=> UAnaBlob blob;
         // print out RMS
@@ -1046,7 +986,6 @@ fun void getgrain( LiSa lisa, dur grainlen, dur rampup, dur rampdown, float rate
 {
     5::second => dur bufferlen;
     // get an available voice
-    // lisa[which].getVoice() => int newvoice;
     lisa.getVoice() => int newvoice;
     
     // make sure we got a valid voice   
