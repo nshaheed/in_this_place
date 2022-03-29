@@ -1,7 +1,5 @@
 // "In this place." main score file
 
-(1.0 / 30.0)::second => dur framerate; // seconds per frame
-
 700 => float filterCutoffMax; // set the filter cutoff max freq that the sweep will use
 // 20000 => filterCutoffMax;
 
@@ -97,20 +95,7 @@ class Bright extends Chugraph {
 0.1::ms => dur delta;
 
 // init video player controls
-CREnv playerRate;
-CREnv playerBlend;
-CREnv playerFade;
-CREnv playerPeak;
-CREnv playerScale;
-VideoController playerFrame;
-
-// start at 2, address, control rate
-playerRate.set("/video/player/rate", 2.0, framerate);
-playerBlend.set("/video/player/blend", 0.0, framerate);
-playerFade.set("/video/player/fade", 0.0, framerate);
-playerPeak.set("/video/player/peak", -6.5, framerate);
-playerScale.set("/video/player/scale", 0, framerate);
-playerFrame.set("/video/player/frame", 0);
+Player player;
 
 
 // two lisas for spatialization
@@ -412,13 +397,13 @@ fun void introBass() {
     [10::second, 8.8::second] @=> dur durValues[];
     
     for (0 => int i; i < 2; i++) {
-        durValues[i] => playerPeak.duration;
-        peakTargets[i] => playerPeak.target;
-        playerPeak.keyOn();
+        durValues[i] => player.peak.duration;
+        peakTargets[i] => player.peak.target;
+        player.peak.keyOn();
         
-        durValues[i] => playerScale.duration;
-        scaleTargets[i] => playerScale.target;
-        playerScale.keyOn();
+        durValues[i] => player.scale.duration;
+        scaleTargets[i] => player.scale.target;
+        player.scale.keyOn();
         
         spork~ bass2harms(25::ms, 5::second, 1600::ms, i+1);
         spork~ rateASR(0::ms, 5400::ms, 2400::ms, rateTargets[i], false);
@@ -431,13 +416,13 @@ fun void introBass() {
 
 fun void bassSection1() {
     <<< "enter bassSection1" >>>;
-    6 => playerScale.target;
-    1::ms => playerScale.duration;
-    playerScale.keyOn();
+    6 => player.scale.target;
+    1::ms => player.scale.duration;
+    player.scale.keyOn();
     
-    -5 => playerPeak.target;
-    1::ms => playerPeak.duration;
-    playerPeak.keyOn();
+    -5 => player.peak.target;
+    1::ms => player.peak.duration;
+    player.peak.keyOn();
     
 
     bass(false, -5, -1);
@@ -447,13 +432,13 @@ fun void bassSection1() {
 }
 
 fun void bassSection2() {
-    6 => playerScale.target;
-    1::ms => playerScale.duration;
-    playerScale.keyOn();
+    6 => player.scale.target;
+    1::ms => player.scale.duration;
+    player.scale.keyOn();
     
-    0 => playerPeak.target;
-    1::ms => playerPeak.duration;
-    playerPeak.keyOn();
+    0 => player.peak.target;
+    1::ms => player.peak.duration;
+    player.peak.keyOn();
     
 
     bass(true, 0, 1);
@@ -464,13 +449,13 @@ fun void bassTransition() {
     <<< "transition bass" >>>;
     
     // set video player state
-    6 => playerScale.target;
-    1::ms => playerScale.duration;
-    playerScale.keyOn();
+    6 => player.scale.target;
+    1::ms => player.scale.duration;
+    player.scale.keyOn();
     
-    -5 => playerPeak.target;
-    1::ms => playerPeak.duration;
-    playerPeak.keyOn();
+    -5 => player.peak.target;
+    1::ms => player.peak.duration;
+    player.peak.keyOn();
 
     // play audio/video
     spork~ bassTransitionVideo();
@@ -484,9 +469,9 @@ fun void bassTransitionVideo() {
     spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
     
     1.6::second + (5-1.6)::second => now;
-    0 => playerPeak.target;
-    20::second => playerPeak.duration;
-    playerPeak.keyOn();
+    0 => player.peak.target;
+    20::second => player.peak.duration;
+    player.peak.keyOn();
 
 }
 
@@ -760,36 +745,36 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
 fun void outro() {
     <<< "outro" >>>;
 
-    6 => playerScale.target;
-    1::ms => playerScale.duration;
-    playerScale.keyOn();
+    6 => player.scale.target;
+    1::ms => player.scale.duration;
+    player.scale.keyOn();
 
-    0 => playerPeak.target;
-    1::ms => playerPeak.duration;
-    playerPeak.keyOn();
+    0 => player.peak.target;
+    1::ms => player.peak.duration;
+    player.peak.keyOn();
 
     1::ms => now;
 
     e1.keyOff();
     e2.keyOff();
 
-    -2 => playerPeak.target;
-    10::second => playerPeak.duration;
-    playerPeak.keyOn();
+    -2 => player.peak.target;
+    10::second => player.peak.duration;
+    player.peak.keyOn();
 
-    0 => playerScale.target;
-    10::second => playerScale.duration;
-    playerScale.keyOn();
+    0 => player.scale.target;
+    10::second => player.scale.duration;
+    player.scale.keyOn();
 
     15::second => now;
 
-    -2 => playerPeak.target;
-    10::second => playerPeak.duration;
-    playerPeak.keyOn();
+    -2 => player.peak.target;
+    10::second => player.peak.duration;
+    player.peak.keyOn();
 
-    -6 => playerPeak.target;
-    10::second => playerPeak.duration;
-    playerPeak.keyOn();
+    -6 => player.peak.target;
+    10::second => player.peak.duration;
+    player.peak.keyOn();
 
 
     30::second => now;
@@ -806,66 +791,66 @@ fun void watchFilterCutoff() {
 
 fun void rateASR(dur atk, dur sustain, dur release, float rate, int negate) {
     1 => float direction;
-    if (playerRate.getValue() < 0) -1 => direction;
+    if (player.rate.getValue() < 0) -1 => direction;
 
     if (negate) -1 * direction => direction;
 
     Math.fabs(rate) => float magnitude;
 
     // set direction before attack.
-    direction * playerRate.getValue() => playerRate.value;
+    direction * player.rate.getValue() => player.rate.value;
 
-    magnitude * direction => playerRate.target;
-    atk => playerRate.duration;
+    magnitude * direction => player.rate.target;
+    atk => player.rate.duration;
 
-    playerRate.keyOn();
+    player.rate.keyOn();
     atk + sustain => now;
 
-    direction * 2 => playerRate.target;
-    release => playerRate.duration;
+    direction * 2 => player.rate.target;
+    release => player.rate.duration;
 
-    playerRate.keyOn();
+    player.rate.keyOn();
     release => now;
 }
 
 fun void blendASR(dur atk, dur sustain, dur release, float gain) {
     4.0 / 5 => float ratio;
-    gain * ratio => playerBlend.target;
-    atk => playerBlend.duration;
+    gain * ratio => player.blend.target;
+    atk => player.blend.duration;
 
-    playerBlend.keyOn();
+    player.blend.keyOn();
 
     atk => now;
 
-    gain => playerBlend.target;
-    sustain / 2 => playerBlend.duration;
-    playerBlend.keyOn();
+    gain => player.blend.target;
+    sustain / 2 => player.blend.duration;
+    player.blend.keyOn();
 
     sustain / 2 => now;
     
-    gain * ratio => playerBlend.target;
-    sustain / 2 => playerBlend.duration;
-    playerBlend.keyOn();
+    gain * ratio => player.blend.target;
+    sustain / 2 => player.blend.duration;
+    player.blend.keyOn();
 
     sustain / 2 => now;
     
-    0 => playerBlend.target;
-    release => playerBlend.duration;
-    playerBlend.keyOn();
+    0 => player.blend.target;
+    release => player.blend.duration;
+    player.blend.keyOn();
     
     release => now;
 }
 
 fun void fadeIn(dur d) {    
-    d => playerFade.duration;
-    1 => playerFade.target;           
-    playerFade.keyOn();
+    d => player.fade.duration;
+    1 => player.fade.target;           
+    player.fade.keyOn();
     d => now;
 }
 
 fun void fadeOut(dur d) {
-    d => playerFade.duration;
-    playerFade.keyOff();
+    d => player.fade.duration;
+    player.fade.keyOff();
     d => now;
 }
  
@@ -934,7 +919,7 @@ fun void launchFloaties(float peakMin, float peakMax) {
             spork~ getgrain2(floaties2, 3::second, 1000::ms, 1000::ms, 1 * rate);
         }
         
-        6::framerate * Std.fabs(rate) => now;
+        6::player.framerate * Std.fabs(rate) => now;
     }
     5::second => now;
 
@@ -1005,7 +990,7 @@ fun void launchFloatiesFixed(float peakMin, float peakMax) {
             spork~ getgrain2(floaties2, 3::second, 1000::ms, 1000::ms, 1 * rate);
         }
         
-        6::framerate * Std.fabs(rate) => now;
+        6::player.framerate * Std.fabs(rate) => now;
     }
     5::second => now;
 
@@ -1015,12 +1000,12 @@ fun void launchFloatiesFixed(float peakMin, float peakMax) {
 fun void setEdge(Gain input, float peakMin, float peakMax) {
     input => FFT fft =^ RMS rms => blackhole;
     // set parameters
-    (framerate / samp) $ int => fft.size;
+    (player.framerate / samp) $ int => fft.size;
     // set hann window
-    Windowing.hann((framerate / samp) $ int) => fft.window;
+    Windowing.hann((player.framerate / samp) $ int) => fft.window;
     
     while(true) {
-        // getPeak(input, framerate) => float peak;
+        // getPeak(input, player.framerate) => float peak;
         // scale(input.last(), 0, 1, 
         
         // upchuck: take fft then rms
@@ -1030,11 +1015,11 @@ fun void setEdge(Gain input, float peakMin, float peakMax) {
         blob.fval(0) => float peak;
         
         
-        scale(peak, 0, 0.001, peakMin, peakMax) => float scaledPeak => playerPeak.target;
+        scale(peak, 0, 0.001, peakMin, peakMax) => float scaledPeak => player.peak.target;
         // <<< "peak", peak, scaledPeak >>>;
-        6::framerate => playerPeak.duration;
-        playerScale.keyOn();
-        6::framerate => now;
+        6::player.framerate => player.peak.duration;
+        player.scale.keyOn();
+        6::player.framerate => now;
     }
 }
 
