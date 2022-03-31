@@ -121,10 +121,10 @@ spork~ cutoffScore(cutoffEvent, s1Event);
 fun void mainLoop() {
 		// the score - all time advances should be handled here
 
-		introBass();
-		bassSection1();
-		bassTransition();
-		bassSection2();
+		intro();
+		section1();
+		transition();
+		section2();
 		outro();
 }
 
@@ -340,7 +340,7 @@ fun float scale(float in, float inMin, float inMax, float outMin, float outMax) 
     return scaled * (outMax - outMin) + outMin;
 }
 
-fun void introBass() {
+fun void intro() {
 		<<< "intro" >>>;
 		// set state
     e1.keyOn();
@@ -372,8 +372,8 @@ fun void introBass() {
     moveForward.signal();
 }
 
-fun void bassSection1() {
-    <<< "enter bassSection1" >>>;
+fun void section1() {
+    <<< "enter section1" >>>;
 
 		// set state
     e1.keyOn();
@@ -392,10 +392,10 @@ fun void bassSection1() {
     bass(false, -5, -1);
     
     moveForward.signal();
-    <<< "exit bassSection1" >>>;
+    <<< "exit section1" >>>;
 }
 
-fun void bassSection2() {
+fun void section2() {
 		// set state
     e1.keyOn();
 		e2.keyOn();
@@ -414,7 +414,7 @@ fun void bassSection2() {
   
 }
 
-fun void bassTransition() {
+fun void transition() {
     <<< "transition bass" >>>;
     
     // set video player state
@@ -427,13 +427,13 @@ fun void bassTransition() {
     player.peak.keyOn();
 
     // play audio/video
-    spork~ bassTransitionVideo();
+    spork~ transitionVideo();
     bass2Cresc(25::ms, 5::second, 6500::ms);
     
     moveForward.signal();
 }
 
-fun void bassTransitionVideo() {
+fun void transitionVideo() {
     spork~ rateASR(0::ms, 5::second, 2000::ms, 1, false);
     spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
     
