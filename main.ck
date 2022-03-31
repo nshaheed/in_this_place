@@ -122,14 +122,9 @@ fun void mainLoop() {
 		// the score - all time advances should be handled here
 
 		introBass();
-
 		bassSection1();
 		bassTransition();
 		bassSection2();
-
-		10::second => now;
-    e1.keyOn();
-
 		outro();
 }
 
@@ -719,6 +714,8 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
 fun void outro() {
     <<< "outro" >>>;
 
+		10::second => now;
+		
     // set state
     6 => player.scale.target;
     1::ms => player.scale.duration;
