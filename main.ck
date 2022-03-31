@@ -122,13 +122,13 @@ spork~ cutoffScore(cutoffEvent, s1Event);
 
 introBass();
 
-/*
-bassSection1();
-bassTransition();
-*/
-e2.keyOn();
-e3.keyOn();
-bassSection2();
+// /*
+// bassSection1();
+// bassTransition();
+// */
+// e2.keyOn();
+// e3.keyOn();
+// bassSection2();
 
 // 10::second => now;
     // e1.keyOn();
@@ -739,16 +739,18 @@ fun void outro() {
 
     // 30::second => now;    
     OscIn oin;
-    1234 => oin.port;
+    1235 => oin.port;
     oin.addAddress("/video/fadeoutstart");
     oin => now;
-    
+
+		<<< "start fade out" >>>;
     fadeOut(10::second);
     
     oin.removeAddress("/video/fadeoutstart");
     oin.addAddress("/video/loop");
     
     oin => now;
+		<<< "video loop" >>>;
 }
 
 fun void watchFilterCutoff() {
