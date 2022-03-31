@@ -121,13 +121,18 @@ spork~ cutoffScore(cutoffEvent, s1Event);
 // the score - all time advances should be handled here
 
 introBass();
+
+/*
 bassSection1();
 bassTransition();
-
+*/
 e2.keyOn();
 e3.keyOn();
 bassSection2();
+
 // 10::second => now;
+    // e1.keyOn();
+
 outro();
 
 1::week => now;
@@ -342,6 +347,7 @@ fun float scale(float in, float inMin, float inMax, float outMin, float outMax) 
 
 fun void introBass() {
     e1.keyOn();
+    e3.keyOff();
     20::second => now;
 
     [-2.0, -5] @=> float peakTargets[];
@@ -698,6 +704,7 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
 fun void outro() {
     <<< "outro" >>>;
 
+    // set state
     6 => player.scale.target;
     1::ms => player.scale.duration;
     player.scale.keyOn();
@@ -708,9 +715,12 @@ fun void outro() {
 
     1::ms => now;
 
+    // turn off two lowest brights
     e1.keyOff();
     e2.keyOff();
+    e3.keyOn();
 
+    // move to mostly dark
     -2 => player.peak.target;
     10::second => player.peak.duration;
     player.peak.keyOn();
@@ -721,18 +731,24 @@ fun void outro() {
 
     15::second => now;
 
-    -2 => player.peak.target;
-    10::second => player.peak.duration;
-    player.peak.keyOn();
-
+    // move to slivers
     -6 => player.peak.target;
     10::second => player.peak.duration;
     player.peak.keyOn();
 
 
-    30::second => now;
-    e3.keyOff();
-    fadeOut(2::second);
+    // 30::second => now;    
+    OscIn oin;
+    1234 => oin.port;
+    oin.addAddress("/video/fadeoutstart");
+    oin => now;
+    
+    fadeOut(10::second);
+    
+    oin.removeAddress("/video/fadeoutstart");
+    oin.addAddress("/video/loop");
+    
+    oin => now;
 }
 
 fun void watchFilterCutoff() {
