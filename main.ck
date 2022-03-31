@@ -118,22 +118,22 @@ spork~ fadeIn(10::second);
 spork~ cutoffDriver(cutoffEvent);
 spork~ cutoffScore(cutoffEvent, s1Event);
 
-// the score - all time advances should be handled here
+fun void mainLoop() {
+		// the score - all time advances should be handled here
 
-introBass();
+		introBass();
 
-// /*
-// bassSection1();
-// bassTransition();
-// */
-// e2.keyOn();
-// e3.keyOn();
-// bassSection2();
+		bassSection1();
+		bassTransition();
+		bassSection2();
 
-// 10::second => now;
-    // e1.keyOn();
+		10::second => now;
+    e1.keyOn();
 
-outro();
+		outro();
+}
+
+spork~ mainLoop();
 
 1::week => now;
 
@@ -346,8 +346,12 @@ fun float scale(float in, float inMin, float inMax, float outMin, float outMax) 
 }
 
 fun void introBass() {
+		<<< "intro" >>>;
+		// set state
     e1.keyOn();
+		e2.keyOff();
     e3.keyOff();
+
     20::second => now;
 
     [-2.0, -5] @=> float peakTargets[];
@@ -375,6 +379,12 @@ fun void introBass() {
 
 fun void bassSection1() {
     <<< "enter bassSection1" >>>;
+
+		// set state
+    e1.keyOn();
+		e2.keyOff();
+    e3.keyOff();
+		
     6 => player.scale.target;
     1::ms => player.scale.duration;
     player.scale.keyOn();
@@ -391,6 +401,11 @@ fun void bassSection1() {
 }
 
 fun void bassSection2() {
+		// set state
+    e1.keyOn();
+		e2.keyOn();
+    e3.keyOn();
+		
     6 => player.scale.target;
     1::ms => player.scale.duration;
     player.scale.keyOn();
