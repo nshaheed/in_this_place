@@ -71,6 +71,7 @@ false => int keepGoing;
 Event moveForward;
 Event startBass;
 Event transitionEvent;
+Outro outroWatch;
 
 // init video player controls
 Player player;
@@ -120,7 +121,6 @@ spork~ cutoffScore(cutoffEvent, s1Event);
 
 fun void mainLoop() {
 		// the score - all time advances should be handled here
-
 		intro();
 		section1();
 		transition();
@@ -157,6 +157,13 @@ class BeatEvent extends Event {
         h => hold;
         0 => beatCount;
     }
+}
+
+class Outro {
+		false => int outro;
+		// Event outroStart;
+		Event fadeoutStart;
+		Event loop;
 }
 
 fun void cutoffDriver(CutoffEvent event) {
@@ -370,6 +377,30 @@ fun void intro() {
     }
     
     moveForward.signal();
+}
+
+fun void watchOutro() {
+		while(true) {
+				OscIn oin;
+				1235 => oin.port;
+				oin.addAddress("/video/outrostart");
+				oin => now;
+
+				true => outroWatch.outro;
+
+				oin.removeAddress("/video/outrostart");
+				oin.addAddress("/video/fadeoutstart");
+
+				oin => now;
+				outroWatch.fadeoutStart.broadcast();
+
+				oin.removeAddress("/video/fadeoutstart");
+				oin.addAddress("/video/loop");
+
+				oin => now;
+				outroWatch.loop.broadcast();
+				false => outroWatch.outro;
+		}
 }
 
 fun void section1() {
