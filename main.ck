@@ -111,7 +111,6 @@ e3.set(10::second, 8::ms, 0.9, 0.5::second);
 // ~~~~~~~~ Setup Watchers ~~~~~~~~
 // spork~ controlCutoffBounds();
 spork~ brightPan();
-spork~ fadeIn(10::second);
 
 //spork~ watchFilterCutoff();
 //spork~ controlCutoff(f);
@@ -367,6 +366,8 @@ fun void intro() {
     e1.keyOn();
 		e2.keyOff();
     e3.keyOff();
+
+		spork~ fadeIn(10::second);
 
     20::second => now;
 
@@ -766,17 +767,6 @@ fun void outro() {
 
 		10::second => now;
 		
-    // set state
-    6 => player.scale.target;
-    1::ms => player.scale.duration;
-    player.scale.keyOn();
-
-    0 => player.peak.target;
-    1::ms => player.peak.duration;
-    player.peak.keyOn();
-
-    1::ms => now;
-
     // turn off two lowest brights
     e1.keyOff();
     e2.keyOff();
