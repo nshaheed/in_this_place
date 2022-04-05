@@ -363,6 +363,7 @@ fun float scale(float in, float inMin, float inMax, float outMin, float outMax) 
 fun void intro() {
 		<<< "intro" >>>;
 		// set state
+		e3.set(5::second, 0::ms, 1, 15::second);
     e1.keyOn();
 		e2.keyOff();
     e3.keyOff();
