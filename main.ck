@@ -118,14 +118,28 @@ spork~ fadeIn(10::second);
 
 spork~ cutoffDriver(cutoffEvent);
 spork~ cutoffScore(cutoffEvent, s1Event);
+spork~ watchOutro();
 
 fun void mainLoop() {
 		// the score - all time advances should be handled here
-		intro();
-		section1();
-		transition();
-		section2();
-		outro();
+		while (true) {
+				intro();
+				innerLoop();
+				outro();
+		}
+}
+
+fun void innerLoop() {
+		while (true) {
+				if (outroWatch.outro) return;
+				section1();
+
+				if (outroWatch.outro) return;
+				transition();
+
+				if (outroWatch.outro) return;
+				section2();
+		}
 }
 
 spork~ mainLoop();
@@ -386,18 +400,23 @@ fun void watchOutro() {
 				oin.addAddress("/video/outrostart");
 				oin => now;
 
+				<<< "reached outro" >>>;
+
 				true => outroWatch.outro;
 
 				oin.removeAddress("/video/outrostart");
 				oin.addAddress("/video/fadeoutstart");
 
 				oin => now;
+				<<< "reached fadout start" >>>;
 				outroWatch.fadeoutStart.broadcast();
 
 				oin.removeAddress("/video/fadeoutstart");
 				oin.addAddress("/video/loop");
 
 				oin => now;
+
+				<<< "reached loop" >>>;
 				outroWatch.loop.broadcast();
 				false => outroWatch.outro;
 		}
@@ -479,7 +498,7 @@ fun void bass(int firstFloaty, float peakMin, float peakMax) {
     0 => int counter;
 
     startBass => now;
-    while (keepGoing) {
+    while (keepGoing && !outroWatch.outro) {
         Math.randomf() => float chance;
         <<< "chance", chance >>>;
 
@@ -780,19 +799,12 @@ fun void outro() {
     player.peak.keyOn();
 
 
-    // 30::second => now;    
-    OscIn oin;
-    1235 => oin.port;
-    oin.addAddress("/video/fadeoutstart");
-    oin => now;
+    outroWatch.fadeoutStart => now;
 
 		<<< "start fade out" >>>;
     fadeOut(10::second);
     
-    oin.removeAddress("/video/fadeoutstart");
-    oin.addAddress("/video/loop");
-    
-    oin => now;
+    outroWatch.loop => now;
 		<<< "video loop" >>>;
 }
 
