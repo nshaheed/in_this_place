@@ -452,6 +452,8 @@ fun void section2() {
     e1.keyOn();
 		e2.keyOn();
     e3.keyOn();
+
+		<<< "enter section2" >>>;
 		
     6 => player.scale.target;
     1::ms => player.scale.duration;
@@ -467,7 +469,7 @@ fun void section2() {
 }
 
 fun void transition() {
-    <<< "transition bass" >>>;
+    <<< "enter transition" >>>;
     
     // set video player state
     6 => player.scale.target;
@@ -499,10 +501,13 @@ fun void transitionVideo() {
 fun void bass(int firstFloaty, float peakMin, float peakMax) {
     0 => int counter;
 
-    startBass => now;
-    while (keepGoing && !outroWatch.outro) {
+		Math.random2(6,10) => int maxCounter;
+
+    // startBass => now;
+    while (counter < maxCounter && !outroWatch.outro) {
         Math.randomf() => float chance;
         <<< "chance", chance >>>;
+				<<< "counter", counter, "/", maxCounter >>>;
 
         if (chance > 0.4) {
             <<< "bass", counter >>>;
