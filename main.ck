@@ -286,7 +286,6 @@ fun void controlCutoff(LPF filter) {
     
     while (true) {
         5::second => now;
-        // e2.keyOn();
         e.keyOn();
         
         filterCutoffMax => float currMax;
@@ -296,7 +295,6 @@ fun void controlCutoff(LPF filter) {
             10::ms => now;
         }
         
-        // 1 => b2.gain;
         5::second => now;
         
         e.keyOff();
@@ -305,14 +303,7 @@ fun void controlCutoff(LPF filter) {
             scale(e.value(), 0, 1, 500, currMax) => filter.freq;
             10::ms => now;
         }
-    
     }
-    
-    10::second => now;
-    
-    e.keyOff();
-    10::second => now;
-    // filter
 }
 
 fun void brightPan() {
@@ -335,24 +326,25 @@ fun void controlB3() {
 }
 // the score for controlling cutoff bounds.
 fun void controlCutoffBounds() {
-    
     5::second => now;
     
     Envelope e => blackhole;
-    2::minute => e.duration;
-    
-    e.keyOn();
-    
-    while(e.value() < e.target()) {
-        scale(e.value(), 0, 1, 700, 20000) => filterCutoffMax;
-        300::ms => now;
-    }
-    1::minute => now;
-    e.keyOff();
-    while(e.value() > 0) {
-        scale(e.value(), 0, 1, 700, 20000) => filterCutoffMax;
-        300::ms => now;
-    }
+    5::minute => e.duration;
+
+		while (true) {
+				e.keyOn();
+
+				while(e.value() < e.target()) {
+						scaleCutoff(e.value(), 0, 1) => filterCutoffMax;
+						300::ms => now;
+				}
+				1::minute => now;
+				e.keyOff();
+				while(e.value() > 0) {
+						scaleCutoff(e.value(), 0, 1) => filterCutoffMax;
+						300::ms => now;
+				}
+		}
 }
 
 fun float scale(float in, float inMin, float inMax, float outMin, float outMax) {
@@ -361,7 +353,7 @@ fun float scale(float in, float inMin, float inMax, float outMin, float outMax) 
 }
 
 fun void intro() {
-		<<< "intro" >>>;
+		<<< "[SCORE] enter intro" >>>;
 		// set state
 		e3.set(5::second, 0::ms, 1, 15::second);
     e1.keyOn();
@@ -393,6 +385,7 @@ fun void intro() {
     }
     
     moveForward.signal();
+		<<< "[SCORE] exit intro" >>>;
 }
 
 fun void watchOutro() {
@@ -410,7 +403,7 @@ fun void watchOutro() {
 				oin.addAddress("/video/fadeoutstart");
 
 				oin => now;
-				<<< "reached fadout start" >>>;
+				<<< "reached fadeout start" >>>;
 				outroWatch.fadeoutStart.broadcast();
 
 				oin.removeAddress("/video/fadeoutstart");
@@ -425,7 +418,7 @@ fun void watchOutro() {
 }
 
 fun void section1() {
-    <<< "enter section1" >>>;
+    <<< "[SCORE] enter section1" >>>;
 
 		// set state
     e1.keyOn();
@@ -444,7 +437,7 @@ fun void section1() {
     bass(false, -5, -1);
     
     moveForward.signal();
-    <<< "exit section1" >>>;
+    <<< "[SCORE] exit section1" >>>;
 }
 
 fun void section2() {
@@ -453,7 +446,7 @@ fun void section2() {
 		e2.keyOn();
     e3.keyOn();
 
-		<<< "enter section2" >>>;
+		<<< "[SCORE] enter section2" >>>;
 		
     6 => player.scale.target;
     1::ms => player.scale.duration;
@@ -465,11 +458,11 @@ fun void section2() {
     
 
     bass(true, 0, 1);
-  
+		<<< "[SCORE] exit session 2" >>>;
 }
 
 fun void transition() {
-    <<< "enter transition" >>>;
+    <<< "[SCORE] enter transition" >>>;
     
     // set video player state
     6 => player.scale.target;
@@ -485,6 +478,7 @@ fun void transition() {
     bass2Cresc(25::ms, 5::second, 6500::ms);
     
     moveForward.signal();
+		<<< "[SCORE] exit transition" >>>;
 }
 
 fun void transitionVideo() {
@@ -507,7 +501,7 @@ fun void bass(int firstFloaty, float peakMin, float peakMax) {
     while (counter < maxCounter && !outroWatch.outro) {
         Math.randomf() => float chance;
         <<< "chance", chance >>>;
-				<<< "counter", counter, "/", maxCounter >>>;
+				<<< "counter", counter+1, "/", maxCounter >>>;
 
         if (chance > 0.4) {
             <<< "bass", counter >>>;
@@ -769,7 +763,7 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
 
 // controlling the outro
 fun void outro() {
-    <<< "outro" >>>;
+    <<< "[SCORE] enter outro" >>>;
 
 		10::second => now;
 		
@@ -801,7 +795,7 @@ fun void outro() {
     fadeOut(10::second);
     
     outroWatch.loop => now;
-		<<< "video loop" >>>;
+		<<< "[SCORE] exit outro/video loop" >>>;
 }
 
 fun void watchFilterCutoff() {
