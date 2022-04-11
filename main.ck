@@ -335,13 +335,13 @@ fun void controlCutoffBounds() {
 				e.keyOn();
 
 				while(e.value() < e.target()) {
-						scaleCutoff(e.value(), 0, 1) => filterCutoffMax;
+						scale(e.value(), 0, 1, 700, 8000) => filterCutoffMax;
 						300::ms => now;
 				}
 				1::minute => now;
 				e.keyOff();
 				while(e.value() > 0) {
-						scaleCutoff(e.value(), 0, 1) => filterCutoffMax;
+						scale(e.value(), 0, 1, 700, 8000) => filterCutoffMax;
 						300::ms => now;
 				}
 		}
@@ -484,8 +484,13 @@ fun void transition() {
 fun void transitionVideo() {
     spork~ rateASR(0::ms, 5::second, 2000::ms, 1, false);
     spork~ blendASR(1600::ms, (5-1.6)::second, 3000::ms, 0.5);
-    
-    1.6::second + (5-1.6)::second => now;
+
+		5::second => now;
+
+		1 => player.scale.target;
+		15::second => player.scale.duration;
+		player.scale.keyOn();
+
     0 => player.peak.target;
     20::second => player.peak.duration;
     player.peak.keyOn();
