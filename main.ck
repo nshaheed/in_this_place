@@ -783,7 +783,19 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
 		e2.keyOff();
 		eSat.keyOff();
 
+		// this is necessary because the saturator is causing performance issues I think
+		spork~ disconnect(sat, eSat, eSat.duration());
+		spork~ disconnect(eSat, g, eSat.duration());
+
 }
+
+// disconnect a ugen after some delay, meant to be sporked
+fun void disconnect(UGen uLeft, UGen uRight, dur d) {
+		d => now;
+		uLeft !=> uRight;
+}
+
+
 
 // controlling the outro
 fun void outro() {
