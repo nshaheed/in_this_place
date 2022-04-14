@@ -122,7 +122,7 @@ spork~ watchOutro();
 fun void mainLoop() {
 		// the score - all time advances should be handled here
 		while (true) {
-				intro();
+				// intro();
 				innerLoop();
 				outro();
 		}
@@ -500,8 +500,8 @@ fun void transitionVideo() {
 fun void bass(int firstFloaty, float peakMin, float peakMax) {
     0 => int counter;
 
-		Math.random2(6,10) => int maxCounter;
-		// 1 => int maxCounter;
+		// Math.random2(6,10) => int maxCounter;
+		1 => int maxCounter;
 
     // startBass => now;
     while (counter < maxCounter && !outroWatch.outro) {
@@ -748,7 +748,7 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     (1-ratio)::release => e2.duration => e3.duration;
     e2.keyOn();
     e3.keyOn();
-		(1-ratio)*0.75::release => e2.duration => e3.duration;
+		(1-ratio)*0.725::release => e2.duration => e3.duration;
 		2 => e3.target => e2.target;
 		e2.keyOn();
     e3.keyOn();
@@ -756,14 +756,14 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     
     // 2::second => now;
     
-    0.07::second => now;
+    55::ms => now;
     
     5::ms => e2.duration => e3.duration;
     0.25 => e3.target;
     
     e2.keyOff();
     e3.keyOff();
-    500::ms => now;
+    100::ms => now;
 
 		// re-attack
     1 => e3.target;
