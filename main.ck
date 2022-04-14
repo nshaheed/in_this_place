@@ -679,8 +679,11 @@ fun void bass2harms(dur atk, dur sustain, dur release, int harms) {
 fun void bass2Cresc(dur atk, dur sustain, dur release) {
     Blit t1 => ADSR e => Gain g => GVerb r => dac;
     Blit t2 => e;
-    Blit t3 => Envelope e2 => ABSaturator sat => Envelope eSat => g;
-    Blit t4 => Envelope e3 => sat;
+    // Blit t3 => Envelope e2 => ABSaturator sat => Envelope eSat => g;
+    // Blit t4 => Envelope e3 => sat;
+    Blit t3 => Envelope e2 => g;
+		ABSaturator sat => Envelope eSat;
+    Blit t4 => Envelope e3 => g;
 
 
 		// the saturator make a pop sound at the beginning, this avoids that
