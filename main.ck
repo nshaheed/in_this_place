@@ -501,6 +501,7 @@ fun void bass(int firstFloaty, float peakMin, float peakMax) {
     0 => int counter;
 
 		Math.random2(6,10) => int maxCounter;
+		// 1 => int maxCounter;
 
     // startBass => now;
     while (counter < maxCounter && !outroWatch.outro) {
@@ -678,8 +679,19 @@ fun void bass2harms(dur atk, dur sustain, dur release, int harms) {
 fun void bass2Cresc(dur atk, dur sustain, dur release) {
     Blit t1 => ADSR e => Gain g => GVerb r => dac;
     Blit t2 => e;
-    Blit t3 => Envelope e2 => g;
-    Blit t4 => Envelope e3 => g;
+    Blit t3 => Envelope e2 => ABSaturator sat => Envelope eSat => g;
+    Blit t4 => Envelope e3 => sat;
+
+
+		// the saturator make a pop sound at the beginning, this avoids that
+		0 => eSat.value;
+		5::second => eSat.duration;
+		eSat.keyOn();
+
+		20 => sat.drive;
+		2 => sat.dcOffset;
+		0.9 => sat.gain;
+
     // 0.1 => r.mix;
     
     50 => r.roomsize;
@@ -709,9 +721,9 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     36 => Std.mtof => t1.freq;
     48.05 => Std.mtof => t2.freq;
     60.05 => Std.mtof => t3.freq;
-    67.05 => Std.mtof => t4.freq;
+    66.99 => Std.mtof => t4.freq;
     
-    e.set(atk, 100::ms, 0.5, release);
+    e.set(atk, 100::ms, 0.5, release*3);
     
     e.keyOn();
     atk + 100::ms => now;
@@ -732,37 +744,44 @@ fun void bass2Cresc(dur atk, dur sustain, dur release) {
     e3.keyOn();
     ratio::release=> now;
     
-    2 => e3.target;
+    1.25 => e3.target => e2.target;
     (1-ratio)::release => e2.duration => e3.duration;
     e2.keyOn();
+    e3.keyOn();
+		(1-ratio)*0.75::release => e2.duration => e3.duration;
+		2 => e3.target => e2.target;
+		e2.keyOn();
     e3.keyOn();
     (1-ratio)::release => now;
     
     // 2::second => now;
     
-    0.15::second => now;
+    0.07::second => now;
     
-    2::ms => e2.duration;
-    2::ms => e3.duration;
+    5::ms => e2.duration => e3.duration;
     0.25 => e3.target;
     
     e2.keyOff();
     e3.keyOff();
-    50::ms => now;
-    
-    1.25 => e3.target;
-    6::ms => e3.duration;
+    500::ms => now;
+
+		// re-attack
+    1 => e3.target;
+    1::ms => e3.duration;
     e3.keyOn();
     6::ms => now;
     
     /*
-    0.25 => e3.target;
-    100::ms => e3.duration;
+    0.9 => e3.target => e2.target;
+    100::ms => e3.duration => e2.duration;
     e3.keyOn();
+		e2.keyOn();
     100::ms => now;
     */
-    1.75::release => e3.duration;
+    1.75::release => e3.duration => e2.duration => eSat.duration;
     e3.keyOff();
+		e2.keyOff();
+		eSat.keyOff();
 
 }
 
