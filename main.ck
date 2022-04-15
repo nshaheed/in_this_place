@@ -122,7 +122,7 @@ spork~ watchOutro();
 fun void mainLoop() {
 		// the score - all time advances should be handled here
 		while (true) {
-				// intro();
+				intro();
 				innerLoop();
 				outro();
 		}
@@ -500,8 +500,8 @@ fun void transitionVideo() {
 fun void bass(int firstFloaty, float peakMin, float peakMax) {
     0 => int counter;
 
-		// Math.random2(6,10) => int maxCounter;
-		1 => int maxCounter;
+		Math.random2(6,10) => int maxCounter;
+		// 1 => int maxCounter;
 
     // startBass => now;
     while (counter < maxCounter && !outroWatch.outro) {
